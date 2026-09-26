@@ -1,0 +1,11 @@
+site
+output
+.playwright-cli
+.next
+node_modules
+.env*
+!.env.example
+.git
+*.tsbuildinfo
+tests
+docs
