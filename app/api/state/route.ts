@@ -1,11 +1,12 @@
 import { apiError, requestClient, configured } from "@/lib/supabase/server";
 import { emptyState } from "@/lib/catalog";
+import { privateJson } from "@/lib/http-cache";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const auth = await requestClient(request);
     if (!auth)
-      return Response.json({
+      return privateJson({
         state: emptyState(),
         storage: "demo",
         configured: configured(),
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
     ]);
     if (profile.error) throw profile.error;
     if (reflections.error) throw reflections.error;
-    return Response.json({
+    return privateJson({
       state: {
         attempts,
         reflections: reflections.data,

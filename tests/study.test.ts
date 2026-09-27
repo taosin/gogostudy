@@ -6,6 +6,7 @@ import {
   stats,
   chinaDay,
   getTodayTask,
+  millisecondsUntilNextChinaDay,
   rotateForChinaDay,
 } from "../lib/study";
 import {
@@ -177,6 +178,10 @@ test("course scopes never merge and unsupported selections do not fall back", ()
 });
 test("study days use China time near midnight", () => {
   assert.equal(chinaDay("2026-09-26T16:01:00Z"), "2026-09-27");
+  assert.equal(
+    millisecondsUntilNextChinaDay(Date.parse("2026-09-27T15:59:59Z")),
+    1000,
+  );
 });
 
 test("Supabase offset timestamps use the same review interval as ISO UTC timestamps", () => {

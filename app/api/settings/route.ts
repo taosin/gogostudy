@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { courseOptions } from "@/lib/catalog";
 import { apiError, requestClient } from "@/lib/supabase/server";
+import { privateJson } from "@/lib/http-cache";
 const schema = z
   .object({
     province: z.string(),
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
       if (!courseOptions[key].includes(course[key])) throw new Error();
     }
   } catch {
-    return Response.json({ error: "课程选择不正确。" }, { status: 400 });
+    return privateJson({ error: "课程选择不正确。" }, { status: 400 });
   }
   try {
     const auth = await requestClient(request);
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
         });
       if (error) throw error;
     }
-    return Response.json({ course, storage: auth ? "cloud" : "demo" });
+    return privateJson({ course, storage: auth ? "cloud" : "demo" });
   } catch (error) {
     return apiError(error);
   }

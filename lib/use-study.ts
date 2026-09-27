@@ -7,10 +7,10 @@ import {
   type Reflection,
   type Course,
 } from "./catalog";
-import { getSupabase } from "./supabase/browser";
+import { getSupabase, isSupabaseConfigured } from "./supabase/browser";
 const DEMO_KEY = "gogostudy.demo.v1";
 export async function api<T>(path: string, body?: unknown): Promise<T> {
-  const client = getSupabase();
+  const client = await getSupabase();
   const session = client ? await client.auth.getSession() : null;
   if (session?.error) throw new Error("登录状态读取失败，请重试。");
   const token = session?.data.session?.access_token;
@@ -21,6 +21,7 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
+    cache: "no-store",
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "请求失败，请重试。");
@@ -28,18 +29,45 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
 }
 export function useStudy() {
   const [state, setState] = useState<StudyState>(emptyState);
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(() => isSupabaseConfigured());
   const [error, setError] = useState("");
   const [storage, setStorage] = useState<"demo" | "cloud">("demo");
   const [email, setEmail] = useState("");
-  const [configured, setConfigured] = useState(false);
+  const [configured, setConfigured] = useState(() => isSupabaseConfigured());
   const stateRef = useRef(state);
   const requestId = useRef(0);
   const reload = useCallback(async () => {
     const id = ++requestId.current;
-    setLoading(true);
+    if (isSupabaseConfigured()) setLoading(true);
     setError("");
     try {
+      if (!isSupabaseConfigured()) {
+        let next = emptyState();
+        const saved = localStorage.getItem(DEMO_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (
+              Array.isArray(parsed.attempts) &&
+              Array.isArray(parsed.reflections) &&
+              parsed.course
+            )
+              next = parsed;
+          } catch {
+            throw new Error(
+              "本机体验记录无法读取，请更换浏览器体验，或登录后使用云端记录。",
+            );
+          }
+        }
+        if (id !== requestId.current) return;
+        stateRef.current = next;
+        setState(next);
+        setStorage("demo");
+        setConfigured(false);
+        setEmail("");
+        return;
+      }
       const result = await api<{
         state: StudyState;
         storage: "demo" | "cloud";
@@ -69,29 +97,48 @@ export function useStudy() {
       setState(next);
       setStorage(result.storage);
       setConfigured(result.configured);
-      const session = await getSupabase()?.auth.getSession();
+      const client = await getSupabase();
+      const session = await client?.auth.getSession();
       if (id === requestId.current)
         setEmail(session?.data.session?.user.email || "");
     } catch (e) {
       if (id === requestId.current)
         setError(e instanceof Error ? e.message : "加载失败");
     } finally {
-      if (id === requestId.current) setLoading(false);
+      if (id === requestId.current) {
+        setLoading(false);
+        setReady(true);
+      }
     }
   }, []);
   useEffect(() => {
     const generation = requestId;
     // Schedule initial hydration without synchronously updating state inside the effect.
     const timer = setTimeout(() => void reload(), 0);
-    const client = getSupabase();
-    const subscription = client?.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT")
-        setTimeout(() => void reload(), 0);
-    });
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+    void getSupabase()
+      .then((client) => {
+        if (!active || !client) return;
+        const subscription = client.auth.onAuthStateChange((event) => {
+          if (event === "SIGNED_IN" || event === "SIGNED_OUT")
+            setTimeout(() => void reload(), 0);
+        });
+        unsubscribe = () => subscription.data.subscription.unsubscribe();
+      })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "登录服务初始化失败，请稍后重试。",
+        );
+      });
     return () => {
+      active = false;
       clearTimeout(timer);
       generation.current++;
-      subscription?.data.subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, [reload]);
   const commit = useCallback(
@@ -167,6 +214,7 @@ export function useStudy() {
   };
   return {
     state,
+    ready,
     loading,
     error,
     storage,

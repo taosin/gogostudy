@@ -65,10 +65,12 @@ import {
   stats,
   chinaDay,
   getTodayTask,
+  millisecondsUntilNextChinaDay,
   rotateForChinaDay,
 } from "@/lib/study";
-import { api, useStudy } from "@/lib/use-study";
+import { useStudy } from "@/lib/use-study";
 import { getSupabase } from "@/lib/supabase/browser";
+import { loadQuestions, preloadQuestions } from "@/lib/question-cache";
 import { NavigationButton } from "@/components/study/navigation-button";
 type View = "home" | "practice" | "mistakes" | "review";
 const navigation = [
@@ -86,18 +88,35 @@ const topicIcons = {
   clock: Clock,
   puzzle: Puzzle,
 };
+const weekdayFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  weekday: "short",
+});
 export default function Home() {
   const [now, setNow] = useState(0);
   useEffect(() => {
-    const initial = setTimeout(() => setNow(Date.now()), 0);
-    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    let timer = 0;
+    const refresh = () => {
+      const current = Date.now();
+      setNow(current);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(
+        refresh,
+        millisecondsUntilNextChinaDay(current) + 100,
+      );
+    };
+    timer = window.setTimeout(refresh, 0);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      clearTimeout(initial);
-      clearInterval(timer);
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
   const study = useStudy();
-  const { state, loading, error, storage } = study;
+  const { state, ready, loading, error, storage } = study;
   const [view, setView] = useState<View>("home"),
     [settings, setSettings] = useState(false),
     [draft, setDraft] = useState<Course>(defaultCourse),
@@ -124,6 +143,15 @@ export default function Home() {
   const reflectionId = useRef("");
   const key = courseKey(state.course),
     available = supportedCourse(state.course);
+  useEffect(() => {
+    if (!ready || loading || !available) return;
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    if (connection?.saveData) return;
+    const timer = window.setTimeout(() => preloadQuestions(key), 250);
+    return () => window.clearTimeout(timer);
+  }, [available, key, loading, ready]);
   const attempts = useMemo(
     () => state.attempts.filter((a) => a.course_key === key),
     [key, state.attempts],
@@ -133,6 +161,31 @@ export default function Home() {
     [attempts, now],
   );
   const mistakes = useMemo(() => getMistakes(attempts), [attempts]);
+  const attemptMetrics = useMemo(() => {
+    const activityDays = new Set<string>();
+    const correctQuestionIds = new Set<string>();
+    const topicPractice = new Map<
+      string,
+      { total: number; correct: number; correctIds: Set<string> }
+    >();
+    for (const attempt of attempts) {
+      activityDays.add(chinaDay(attempt.created_at));
+      if (attempt.correct) correctQuestionIds.add(attempt.question_id);
+      if (attempt.mode !== "practice") continue;
+      const metric = topicPractice.get(attempt.question.topic) || {
+        total: 0,
+        correct: 0,
+        correctIds: new Set<string>(),
+      };
+      metric.total += 1;
+      if (attempt.correct) {
+        metric.correct += 1;
+        metric.correctIds.add(attempt.question_id);
+      }
+      topicPractice.set(attempt.question.topic, metric);
+    }
+    return { activityDays, correctQuestionIds, topicPractice };
+  }, [attempts]);
   const pending = useMemo(
       () => mistakes.filter((m) => m.status === "pending"),
       [mistakes],
@@ -151,10 +204,21 @@ export default function Home() {
       () => getTodayTask(mistakes, now),
       [mistakes, now],
     );
+  const filteredMistakes = useMemo(
+    () =>
+      mistakes.filter(
+        (mistake) =>
+          (filter === "all" || mistake.status === filter) &&
+          (topicFilter === "全部知识点" ||
+            topics.find((topic) => topic.id === mistake.question.topic)?.name ===
+              topicFilter),
+      ),
+    [filter, mistakes, topicFilter],
+  );
   const dailyGoal = 5,
     dailyProgress = Math.min(summary.todayPractice, dailyGoal);
   const current = queue[index];
-  const disabled = loading || busy || Boolean(error);
+  const disabled = !ready || loading || busy || Boolean(error);
   const title = navigation.find((n) => n.id === view)!.label;
   const todayActionLabel =
       todayTask.kind === "correction"
@@ -211,9 +275,7 @@ export default function Home() {
   ) {
     if (disabled || !available) return;
     await run(async () => {
-      const data = await api<{ questions: Question[] }>(
-        `/api/questions?course=${encodeURIComponent(key)}${topic ? "&topic=" + topic : ""}`,
-      );
+      const questions = await loadQuestions(key);
       const unresolvedMistakeIds = new Set(
         mistakes
           .filter((m) => m.status !== "mastered")
@@ -221,19 +283,18 @@ export default function Home() {
       );
       let selected = ids
         ? ids
-            .map((id) => data.questions.find((q) => q.id === id))
+            .map((id) => questions.find((q) => q.id === id))
             .filter((q): q is Question => !!q)
-        : data.questions.filter(
+        : questions.filter(
             (q) =>
               (!topic || q.topic === topic) &&
               !unresolvedMistakeIds.has(q.id),
           );
       if (!ids) {
-        const used = new Set(
-          attempts.filter((a) => a.correct).map((a) => a.question_id),
-        );
         selected = selected.sort(
-          (a, b) => Number(used.has(a.id)) - Number(used.has(b.id)),
+          (a, b) =>
+            Number(attemptMetrics.correctQuestionIds.has(a.id)) -
+            Number(attemptMetrics.correctQuestionIds.has(b.id)),
         );
         if (!topic) {
           const chosen: Question[] = [];
@@ -306,7 +367,7 @@ export default function Home() {
   async function authSubmit() {
     setAuthMessage("");
     await run(async () => {
-      const client = getSupabase();
+      const client = await getSupabase();
       if (!client)
         throw new Error("家长账户暂未开放，目前可使用本机体验模式。");
       if (!codeSent) {
@@ -336,10 +397,8 @@ export default function Home() {
     <div className="topic-grid">
       {(all ? topics : topics.slice(0, 4)).map((t) => {
         const Icon = topicIcons[t.icon as keyof typeof topicIcons];
-        const answered = attempts.filter(
-          (a) =>
-            a.mode === "practice" && a.question.topic === t.id && a.correct,
-        );
+        const answered =
+          attemptMetrics.topicPractice.get(t.id)?.correctIds.size || 0;
         return (
           <button
             className="topic-card"
@@ -354,8 +413,8 @@ export default function Home() {
             <p>{t.description}</p>
             <div className="topic-bottom">
               <span>
-                {answered.length
-                  ? `练习答对 ${new Set(answered.map((a) => a.question_id)).size} 道题`
+                {answered
+                  ? `练习答对 ${answered} 道题`
                   : "开始探索"}
               </span>
               <ArrowRight size={18} />
@@ -407,7 +466,7 @@ export default function Home() {
           </div>
           <button
             className="profile"
-            disabled={busy}
+            disabled={!ready || busy}
             onClick={() => {
               setAuthOpen(true);
               setNotice("");
@@ -436,7 +495,7 @@ export default function Home() {
           <div className="topbar-actions">
             <button
               className="text-button"
-              disabled={busy}
+              disabled={!ready || busy}
               onClick={() => setAuthOpen(true)}
               aria-label={storage === "cloud" ? "家长账户" : "家长登录"}
             >
@@ -447,7 +506,7 @@ export default function Home() {
               className="text-button"
               onClick={openSettings}
               aria-label="学习设置"
-              disabled={loading || busy || (!!queue.length && !done)}
+              disabled={!ready || loading || busy || (!!queue.length && !done)}
             >
               <Settings2 size={16} />
               <span>学习设置</span>
@@ -700,7 +759,7 @@ export default function Home() {
               <button
                 className="curriculum-strip"
                 onClick={openSettings}
-                disabled={loading || busy}
+                disabled={!ready || loading || busy}
               >
                 <span>
                   <BookOpen size={18} /> 我的课程
@@ -807,19 +866,15 @@ export default function Home() {
                           <div className="week">
                             {Array.from({ length: 7 }, (_, i) => {
                               const date = new Date(now - (6 - i) * 86400000);
-                              const active = attempts.some(
-                                (a) =>
-                                  chinaDay(a.created_at) === chinaDay(date),
+                              const active = attemptMetrics.activityDays.has(
+                                chinaDay(date),
                               );
                               return (
                                 <div key={i}>
                                   <span>
                                     {i === 6
                                       ? "今天"
-                                      : new Intl.DateTimeFormat("zh-CN", {
-                                          timeZone: "Asia/Shanghai",
-                                          weekday: "short",
-                                        })
+                                      : weekdayFormatter
                                           .format(date)
                                           .replace("周", "")}
                                   </span>
@@ -965,15 +1020,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="mistake-list">
-                        {mistakes
-                          .filter(
-                            (m) =>
-                              (filter === "all" || m.status === filter) &&
-                              (topicFilter === "全部知识点" ||
-                                topics.find((t) => t.id === m.question.topic)
-                                  ?.name === topicFilter),
-                          )
-                          .map((m) => {
+                        {filteredMistakes.map((m) => {
                             const reviewDue =
                               m.status === "review" &&
                               Boolean(m.dueAt) &&
@@ -1067,13 +1114,7 @@ export default function Home() {
                             );
                           })}
                       </div>
-                      {mistakes.filter(
-                        (m) =>
-                          (filter === "all" || m.status === filter) &&
-                          (topicFilter === "全部知识点" ||
-                            topics.find((t) => t.id === m.question.topic)
-                              ?.name === topicFilter),
-                      ).length === 0 && (
+                      {filteredMistakes.length === 0 && (
                         <div className="panel empty-state">
                           <CheckCircle2 size={42} />
                           <h2>
@@ -1125,23 +1166,15 @@ export default function Home() {
                             按平时练习统计，订正和复习单独记录。
                           </p>
                           {topics.map((t) => {
-                            const list = attempts.filter(
-                              (a) =>
-                                a.mode === "practice" &&
-                                a.question.topic === t.id,
-                            );
-                            const pct = list.length
-                              ? Math.round(
-                                  (list.filter((a) => a.correct).length /
-                                    list.length) *
-                                    100,
-                                )
+                            const metric = attemptMetrics.topicPractice.get(t.id);
+                            const pct = metric?.total
+                              ? Math.round((metric.correct / metric.total) * 100)
                               : 0;
                             return (
                               <div className="topic-progress" key={t.id}>
                                 <div>
                                   <span>{t.name}</span>
-                                  <b>{list.length ? pct + "%" : "还没练习"}</b>
+                                  <b>{metric?.total ? pct + "%" : "还没练习"}</b>
                                 </div>
                                 <Progress value={pct} />
                               </div>
@@ -1363,7 +1396,9 @@ export default function Home() {
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
-                    const r = await getSupabase()!.auth.signOut();
+                    const client = await getSupabase();
+                    if (!client) throw new Error("登录服务暂不可用，请稍后重试。");
+                    const r = await client.auth.signOut();
                     if (r.error) throw new Error("退出失败，请重试。");
                     await study.reload();
                     setAuthOpen(false);

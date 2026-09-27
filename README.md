@@ -58,6 +58,14 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
 也可以在项目根目录运行 `npx vercel` 创建预览部署，确认后运行 `npx vercel --prod`。本项目不包含账户凭据；Vercel 项目关联保存在被忽略的 `.vercel/` 目录。
 
+## 性能与缓存
+
+- 首页由 Next.js 静态预渲染，并由 Vercel CDN 分发。
+- 公开题库在浏览器缓存 5 分钟、Vercel CDN 缓存 1 天，并允许 7 天后台更新；同一次页面会话只请求一次完整题库。
+- 未配置 Supabase 时直接读取浏览器体验记录，不请求云端状态，也不会加载 Supabase 客户端代码。
+- 学习记录、登录状态和所有写接口均使用 `private, no-store`，不会进入浏览器或共享 CDN 缓存。
+- Vercel Functions 部署在新加坡区域，减少中国方向访问公开判题接口的跨洲延迟；后续创建 Supabase 项目时也建议选择新加坡区域。
+
 ## 结构与扩展
 
 - `lib/catalog.ts`：课程维度、默认设置、知识点和共享类型

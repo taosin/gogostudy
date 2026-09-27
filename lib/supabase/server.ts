@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { privateJson } from "../http-cache";
 export function configured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -29,7 +30,7 @@ export function apiError(error: unknown) {
   );
   const unauthorized =
     error instanceof Error && error.message === "UNAUTHORIZED";
-  return Response.json(
+  return privateJson(
     {
       error: unauthorized
         ? "登录已过期，请重新登录后再保存。"

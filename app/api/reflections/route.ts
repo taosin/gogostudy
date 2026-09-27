@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { apiError, requestClient } from "@/lib/supabase/server";
+import { privateJson } from "@/lib/http-cache";
 const schema = z.object({
   id: z.string().uuid(),
   body: z.string().trim().min(1).max(500),
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   try {
     input = schema.parse(await request.json());
   } catch {
-    return Response.json(
+    return privateJson(
       { error: "写下 1～500 字的小收获吧。" },
       { status: 400 },
     );
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
         .select()
         .maybeSingle();
       if (error) throw error;
-      if (data) return Response.json({ reflection: data, storage: "cloud" });
+      if (data) return privateJson({ reflection: data, storage: "cloud" });
       const existing = await auth.client
         .from("reflections")
         .select("*")
@@ -36,9 +37,9 @@ export async function POST(request: Request) {
         .eq("user_id", auth.user.id)
         .single();
       if (existing.error) throw existing.error;
-      return Response.json({ reflection: existing.data, storage: "cloud" });
+      return privateJson({ reflection: existing.data, storage: "cloud" });
     }
-    return Response.json({ reflection, storage: "demo" });
+    return privateJson({ reflection, storage: "demo" });
   } catch (error) {
     return apiError(error);
   }

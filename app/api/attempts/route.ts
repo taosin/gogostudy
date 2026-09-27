@@ -2,6 +2,7 @@ import { z } from "zod";
 import { questions, gradeAnswer, publicQuestion } from "@/lib/questions";
 import { defaultCourse, courseKey, type Attempt } from "@/lib/catalog";
 import { apiError, requestClient } from "@/lib/supabase/server";
+import { privateJson } from "@/lib/http-cache";
 const bodySchema = z.object({
   id: z.string().uuid(),
   questionId: z.string(),
@@ -20,11 +21,11 @@ export async function POST(request: Request) {
   try {
     input = bodySchema.parse(await request.json());
   } catch {
-    return Response.json({ error: "请检查答案后再试一次。" }, { status: 400 });
+    return privateJson({ error: "请检查答案后再试一次。" }, { status: 400 });
   }
   const question = questions.find((q) => q.id === input.questionId);
   if (!question)
-    return Response.json(
+    return privateJson(
       { error: "没有找到这道题，请重新选择练习。" },
       { status: 404 },
     );
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
         .maybeSingle();
       if (existing.error) throw existing.error;
       if (existing.data)
-        return Response.json({ attempt: existing.data, storage: "cloud" });
+        return privateJson({ attempt: existing.data, storage: "cloud" });
       const { data, error } = await auth.client
         .from("attempts")
         .insert({ ...attempt, user_id: auth.user.id })
@@ -67,13 +68,13 @@ export async function POST(request: Request) {
             .eq("user_id", auth.user.id)
             .single();
           if (retry.error) throw retry.error;
-          return Response.json({ attempt: retry.data, storage: "cloud" });
+          return privateJson({ attempt: retry.data, storage: "cloud" });
         }
         throw error;
       }
-      return Response.json({ attempt: data, storage: "cloud" });
+      return privateJson({ attempt: data, storage: "cloud" });
     }
-    return Response.json({ attempt, storage: "demo" });
+    return privateJson({ attempt, storage: "demo" });
   } catch (error) {
     return apiError(error);
   }

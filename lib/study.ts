@@ -13,6 +13,13 @@ export type Mistake = {
 };
 
 const DAY_MS = 86_400_000;
+const CHINA_OFFSET_MS = 8 * 60 * 60 * 1000;
+const chinaDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 function addDays(value: string, days: number) {
   return new Date(Date.parse(value) + days * DAY_MS).toISOString();
@@ -76,19 +83,32 @@ export function getMistakes(attempts: Attempt[]): Mistake[] {
     );
 }
 export function chinaDay(date: Date | string = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(date));
+  return chinaDayFormatter.format(new Date(date));
+}
+export function millisecondsUntilNextChinaDay(now = Date.now()) {
+  const chinaTime = now + CHINA_OFFSET_MS;
+  const nextDay = (Math.floor(chinaTime / DAY_MS) + 1) * DAY_MS;
+  return nextDay - chinaTime;
 }
 export function stats(attempts: Attempt[], now: Date | string = new Date()) {
-  const practices = attempts.filter((a) => a.mode === "practice");
-  const correct = practices.filter((a) => a.correct).length;
   const current = new Date(now);
   const todayKey = chinaDay(current);
-  const activeDays = new Set(attempts.map((a) => chinaDay(a.created_at)));
+  const activeDays = new Set<string>();
+  const uniquePractice = new Set<string>();
+  let practice = 0,
+    correct = 0,
+    today = 0,
+    todayPractice = 0;
+  for (const attempt of attempts) {
+    const day = chinaDay(attempt.created_at);
+    activeDays.add(day);
+    if (day === todayKey) today += 1;
+    if (attempt.mode !== "practice") continue;
+    practice += 1;
+    uniquePractice.add(attempt.question_id);
+    if (attempt.correct) correct += 1;
+    if (day === todayKey) todayPractice += 1;
+  }
   let streak = 0;
   const start = activeDays.has(todayKey) ? 0 : 1;
   for (let offset = start; ; offset += 1) {
@@ -98,15 +118,12 @@ export function stats(attempts: Attempt[], now: Date | string = new Date()) {
   }
   return {
     total: attempts.length,
-    practice: practices.length,
-    uniquePractice: new Set(practices.map((a) => a.question_id)).size,
+    practice,
+    uniquePractice: uniquePractice.size,
     correct,
-    accuracy: practices.length
-      ? Math.round((correct / practices.length) * 100)
-      : 0,
-    today: attempts.filter((a) => chinaDay(a.created_at) === todayKey).length,
-    todayPractice: practices.filter((a) => chinaDay(a.created_at) === todayKey)
-      .length,
+    accuracy: practice ? Math.round((correct / practice) * 100) : 0,
+    today,
+    todayPractice,
     days: activeDays.size,
     streak,
   };
