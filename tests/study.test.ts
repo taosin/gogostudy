@@ -1,7 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { questions, gradeAnswer, publicQuestion } from "../lib/questions";
-import { getMistakes, stats, chinaDay } from "../lib/study";
+import {
+  getMistakes,
+  stats,
+  chinaDay,
+  getTodayTask,
+  rotateForChinaDay,
+} from "../lib/study";
 import {
   defaultCourse,
   courseKey,
@@ -53,27 +59,101 @@ test("correction does not imply mastery; same-day review stays pending", () => {
     });
   const result = getMistakes([wrong, corrected, early])[0];
   assert.equal(result.status, "review");
+  assert.equal(result.reviewStep, 0);
   assert.equal(result.dueAt, "2026-09-27T03:00:00.000Z");
 });
-test("a successful spaced review masters a question, later error reopens it", () => {
+
+test("a review becomes available at the start of its China calendar day", () => {
+  const result = getMistakes([
+    attempt(),
+    attempt({
+      correct: true,
+      mode: "correction",
+      created_at: "2026-09-26T12:00:00.000Z",
+    }),
+    attempt({
+      correct: true,
+      mode: "review",
+      created_at: "2026-09-26T16:01:00.000Z",
+    }),
+  ])[0];
+  assert.equal(result.status, "review");
+  assert.equal(result.reviewStep, 1);
+  assert.equal(
+    getTodayTask(
+      getMistakes([
+        attempt(),
+        attempt({
+          correct: true,
+          mode: "correction",
+          created_at: "2026-09-26T12:00:00.000Z",
+        }),
+      ]),
+      "2026-09-27T00:01:00+08:00",
+    ).kind,
+    "review",
+  );
+});
+
+test("ordinary practice cannot bypass explicit correction", () => {
+  const result = getMistakes([
+    attempt(),
+    attempt({
+      correct: true,
+      mode: "practice",
+      created_at: "2026-09-27T03:00:00.000Z",
+    }),
+  ])[0];
+  assert.equal(result.status, "pending");
+  assert.equal(result.dueAt, null);
+});
+
+test("three due reviews advance the 1 / 3 / 7 day cycle, then an error reopens it", () => {
   const wrong = attempt(),
     corrected = attempt({
       correct: true,
       mode: "correction",
       created_at: "2026-09-26T03:00:00.000Z",
     }),
-    review = attempt({
+    firstReview = attempt({
       correct: true,
       mode: "review",
       created_at: "2026-09-27T03:00:00.000Z",
+    }),
+    secondReview = attempt({
+      correct: true,
+      mode: "review",
+      created_at: "2026-09-30T03:00:00.000Z",
+    }),
+    finalReview = attempt({
+      correct: true,
+      mode: "review",
+      created_at: "2026-10-07T03:00:00.000Z",
     });
-  assert.equal(getMistakes([review, wrong, corrected])[0].status, "mastered");
+  const first = getMistakes([firstReview, wrong, corrected])[0];
+  assert.equal(first.status, "review");
+  assert.equal(first.reviewStep, 1);
+  assert.equal(first.dueAt, "2026-09-30T03:00:00.000Z");
+  const second = getMistakes([wrong, corrected, firstReview, secondReview])[0];
+  assert.equal(second.reviewStep, 2);
+  assert.equal(second.dueAt, "2026-10-07T03:00:00.000Z");
+  const mastered = getMistakes([
+    wrong,
+    corrected,
+    firstReview,
+    secondReview,
+    finalReview,
+  ])[0];
+  assert.equal(mastered.status, "mastered");
+  assert.equal(mastered.reviewStep, 3);
   assert.equal(
     getMistakes([
       wrong,
       corrected,
-      review,
-      attempt({ created_at: "2026-09-28T02:00:00.000Z" }),
+      firstReview,
+      secondReview,
+      finalReview,
+      attempt({ created_at: "2026-10-08T02:00:00.000Z" }),
     ])[0].status,
     "pending",
   );
@@ -113,5 +193,58 @@ test("Supabase offset timestamps use the same review interval as ISO UTC timesta
       created_at: "2026-09-27T11:00:00+08:00",
     }),
   ]);
-  assert.equal(result[0].status, "mastered");
+  assert.equal(result[0].status, "review");
+  assert.equal(result[0].reviewStep, 1);
+  assert.equal(result[0].dueAt, "2026-09-30T03:00:00.000Z");
+});
+
+test("today task prioritizes correction, then due review, then practice", () => {
+  const wrong = attempt();
+  assert.equal(getTodayTask(getMistakes([wrong]), "2026-10-01").kind, "correction");
+  const corrected = attempt({
+    correct: true,
+    mode: "correction",
+    created_at: "2026-09-26T03:00:00.000Z",
+  });
+  assert.equal(
+    getTodayTask(getMistakes([wrong, corrected]), "2026-09-27T03:00:00.000Z")
+      .kind,
+    "review",
+  );
+  assert.equal(
+    getTodayTask(getMistakes([wrong, corrected]), "2026-09-26T04:00:00.000Z")
+      .kind,
+    "practice",
+  );
+});
+
+test("daily topic rotation includes every topic across consecutive days", () => {
+  const values = ["a", "b", "c", "d", "e", "f", "g"];
+  const seen = new Set<string>();
+  for (let day = 27; day <= 33; day += 1) {
+    const date = new Date(Date.UTC(2026, 8, day));
+    for (const value of rotateForChinaDay(values, date).slice(0, 5)) seen.add(value);
+  }
+  assert.deepEqual([...seen].sort(), values);
+});
+
+test("stats report today's practice and a continuous learning streak", () => {
+  const result = stats(
+    [
+      attempt({ created_at: "2026-09-25T03:00:00.000Z" }),
+      attempt({ created_at: "2026-09-26T03:00:00.000Z" }),
+      attempt({
+        created_at: "2026-09-27T03:00:00.000Z",
+        mode: "correction",
+      }),
+      attempt({
+        created_at: "2026-09-27T04:00:00.000Z",
+        correct: true,
+      }),
+    ],
+    "2026-09-27T12:00:00+08:00",
+  );
+  assert.equal(result.today, 2);
+  assert.equal(result.todayPractice, 1);
+  assert.equal(result.streak, 3);
 });

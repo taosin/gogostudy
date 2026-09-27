@@ -1,13 +1,24 @@
 import { type Attempt } from "./catalog";
+
+export const REVIEW_INTERVAL_DAYS = [1, 3, 7] as const;
+
 export type Mistake = {
   question: Attempt["question"];
   last: Attempt;
   firstWrong: Attempt;
   status: "pending" | "review" | "mastered";
   dueAt: string | null;
+  reviewStep: number;
   wrongCount: number;
 };
-// Correcting immediately is different from remembering it the next day.
+
+const DAY_MS = 86_400_000;
+
+function addDays(value: string, days: number) {
+  return new Date(Date.parse(value) + days * DAY_MS).toISOString();
+}
+
+// A correction starts the review cycle. Only due reviews advance 1 / 3 / 7.
 export function getMistakes(attempts: Attempt[]): Mistake[] {
   const grouped = new Map<string, Attempt[]>();
   for (const a of attempts) {
@@ -22,24 +33,30 @@ export function getMistakes(attempts: Attempt[]): Mistake[] {
       const firstWrong = list.find((a) => !a.correct);
       if (!firstWrong) return [];
       let status: Mistake["status"] = "pending",
-        dueAt: string | null = null;
+        dueAt: string | null = null,
+        reviewStep = 0;
       for (const a of list.slice(list.indexOf(firstWrong))) {
         if (!a.correct) {
           status = "pending";
           dueAt = null;
-        } else if (status === "pending") {
+          reviewStep = 0;
+        } else if (status === "pending" && a.mode === "correction") {
           status = "review";
-          dueAt = new Date(
-            new Date(a.created_at).getTime() + 86400000,
-          ).toISOString();
+          reviewStep = 0;
+          dueAt = addDays(a.created_at, REVIEW_INTERVAL_DAYS[0]);
         } else if (
           status === "review" &&
           a.mode === "review" &&
           dueAt &&
-          Date.parse(a.created_at) >= Date.parse(dueAt)
+          chinaDay(a.created_at) >= chinaDay(dueAt)
         ) {
-          status = "mastered";
-          dueAt = null;
+          reviewStep += 1;
+          if (reviewStep >= REVIEW_INTERVAL_DAYS.length) {
+            status = "mastered";
+            dueAt = null;
+          } else {
+            dueAt = addDays(a.created_at, REVIEW_INTERVAL_DAYS[reviewStep]);
+          }
         }
       }
       return [
@@ -49,6 +66,7 @@ export function getMistakes(attempts: Attempt[]): Mistake[] {
           firstWrong,
           status,
           dueAt,
+          reviewStep,
           wrongCount: list.filter((a) => !a.correct).length,
         },
       ];
@@ -65,17 +83,76 @@ export function chinaDay(date: Date | string = new Date()) {
     day: "2-digit",
   }).format(new Date(date));
 }
-export function stats(attempts: Attempt[]) {
+export function stats(attempts: Attempt[], now: Date | string = new Date()) {
   const practices = attempts.filter((a) => a.mode === "practice");
   const correct = practices.filter((a) => a.correct).length;
+  const current = new Date(now);
+  const todayKey = chinaDay(current);
+  const activeDays = new Set(attempts.map((a) => chinaDay(a.created_at)));
+  let streak = 0;
+  const start = activeDays.has(todayKey) ? 0 : 1;
+  for (let offset = start; ; offset += 1) {
+    const day = chinaDay(new Date(current.getTime() - offset * DAY_MS));
+    if (!activeDays.has(day)) break;
+    streak += 1;
+  }
   return {
     total: attempts.length,
     practice: practices.length,
+    uniquePractice: new Set(practices.map((a) => a.question_id)).size,
     correct,
     accuracy: practices.length
       ? Math.round((correct / practices.length) * 100)
       : 0,
-    today: attempts.filter((a) => chinaDay(a.created_at) === chinaDay()).length,
-    days: new Set(attempts.map((a) => chinaDay(a.created_at))).size,
+    today: attempts.filter((a) => chinaDay(a.created_at) === todayKey).length,
+    todayPractice: practices.filter((a) => chinaDay(a.created_at) === todayKey)
+      .length,
+    days: activeDays.size,
+    streak,
   };
+}
+
+export type TodayTask = {
+  kind: "correction" | "review" | "practice";
+  count: number;
+  ids: string[];
+};
+
+export function getTodayTask(
+  mistakes: Mistake[],
+  now: Date | string | number = new Date(),
+  limit = 5,
+): TodayTask {
+  const pending = mistakes.filter((m) => m.status === "pending").slice(0, limit);
+  if (pending.length)
+    return {
+      kind: "correction",
+      count: pending.length,
+      ids: pending.map((m) => m.question.id),
+    };
+  const todayKey = chinaDay(new Date(now));
+  const due = mistakes
+    .filter(
+      (m) =>
+        m.status === "review" &&
+        Boolean(m.dueAt) &&
+        chinaDay(m.dueAt!) <= todayKey,
+    )
+    .slice(0, limit);
+  if (due.length)
+    return {
+      kind: "review",
+      count: due.length,
+      ids: due.map((m) => m.question.id),
+    };
+  return { kind: "practice", count: limit, ids: [] };
+}
+
+export function rotateForChinaDay<T>(values: readonly T[], date: Date | string) {
+  if (!values.length) return [];
+  const dayNumber = Math.floor(
+    Date.parse(`${chinaDay(date)}T00:00:00.000Z`) / DAY_MS,
+  );
+  const start = ((dayNumber % values.length) + values.length) % values.length;
+  return [...values.slice(start), ...values.slice(0, start)];
 }

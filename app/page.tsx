@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   House,
@@ -60,7 +60,13 @@ import {
   type Question,
   type Attempt,
 } from "@/lib/catalog";
-import { getMistakes, stats, chinaDay } from "@/lib/study";
+import {
+  getMistakes,
+  stats,
+  chinaDay,
+  getTodayTask,
+  rotateForChinaDay,
+} from "@/lib/study";
 import { api, useStudy } from "@/lib/use-study";
 import { getSupabase } from "@/lib/supabase/browser";
 import { NavigationButton } from "@/components/study/navigation-button";
@@ -118,16 +124,62 @@ export default function Home() {
   const reflectionId = useRef("");
   const key = courseKey(state.course),
     available = supportedCourse(state.course);
-  const attempts = state.attempts.filter((a) => a.course_key === key);
-  const summary = stats(attempts);
-  const mistakes = getMistakes(attempts);
-  const pending = mistakes.filter((m) => m.status === "pending"),
-    due = mistakes.filter(
-      (m) => m.status === "review" && m.dueAt! <= new Date(now).toISOString(),
+  const attempts = useMemo(
+    () => state.attempts.filter((a) => a.course_key === key),
+    [key, state.attempts],
+  );
+  const summary = useMemo(
+    () => stats(attempts, new Date(now)),
+    [attempts, now],
+  );
+  const mistakes = useMemo(() => getMistakes(attempts), [attempts]);
+  const pending = useMemo(
+      () => mistakes.filter((m) => m.status === "pending"),
+      [mistakes],
+    ),
+    due = useMemo(
+      () =>
+        mistakes.filter(
+          (m) =>
+            m.status === "review" &&
+            Boolean(m.dueAt) &&
+            chinaDay(m.dueAt!) <= chinaDay(new Date(now)),
+        ),
+      [mistakes, now],
+    ),
+    todayTask = useMemo(
+      () => getTodayTask(mistakes, now),
+      [mistakes, now],
     );
+  const dailyGoal = 5,
+    dailyProgress = Math.min(summary.todayPractice, dailyGoal);
   const current = queue[index];
   const disabled = loading || busy || Boolean(error);
   const title = navigation.find((n) => n.id === view)!.label;
+  const todayActionLabel =
+      todayTask.kind === "correction"
+        ? `先订正 ${todayTask.count} 道错题`
+        : todayTask.kind === "review"
+          ? `开始 ${todayTask.count} 道到期复习`
+          : dailyProgress >= dailyGoal
+            ? "再挑战 5 道题"
+            : "开始今日练习",
+    todayHeadline =
+      todayTask.kind === "correction"
+        ? "先把错题想明白，"
+        : todayTask.kind === "review"
+          ? "今天来回忆一下，"
+          : dailyProgress >= dailyGoal
+            ? "今天的目标完成啦！"
+            : "数学小探险，",
+    todayDescription =
+      todayTask.kind === "correction"
+        ? "订正完成后，系统会安排间隔复习。"
+        : todayTask.kind === "review"
+          ? "按时回忆，比连续重复更容易记牢。"
+          : dailyProgress >= dailyGoal
+            ? "已经完成 5 道练习，还可以继续探索。"
+            : `今天已练 ${dailyProgress} 道，再完成 ${dailyGoal - dailyProgress} 道就达成目标。`;
   function navigate(next: View) {
     if (busy) return;
     if (
@@ -162,11 +214,20 @@ export default function Home() {
       const data = await api<{ questions: Question[] }>(
         `/api/questions?course=${encodeURIComponent(key)}${topic ? "&topic=" + topic : ""}`,
       );
+      const unresolvedMistakeIds = new Set(
+        mistakes
+          .filter((m) => m.status !== "mastered")
+          .map((m) => m.question.id),
+      );
       let selected = ids
         ? ids
             .map((id) => data.questions.find((q) => q.id === id))
             .filter((q): q is Question => !!q)
-        : data.questions.filter((q) => !topic || q.topic === topic);
+        : data.questions.filter(
+            (q) =>
+              (!topic || q.topic === topic) &&
+              !unresolvedMistakeIds.has(q.id),
+          );
       if (!ids) {
         const used = new Set(
           attempts.filter((a) => a.correct).map((a) => a.question_id),
@@ -176,7 +237,7 @@ export default function Home() {
         );
         if (!topic) {
           const chosen: Question[] = [];
-          for (const t of topics) {
+          for (const t of rotateForChinaDay(topics, new Date())) {
             const q = selected.find((q) => q.topic === t.id);
             if (q) chosen.push(q);
           }
@@ -184,7 +245,14 @@ export default function Home() {
         }
         selected = selected.slice(0, 5);
       }
-      if (!selected.length) throw new Error("这里的题目还在准备中。");
+      if (!selected.length)
+        throw new Error(
+          pending.length
+            ? "这些题正在错题本里等你订正，先把它们想明白吧。"
+            : mistakes.some((m) => m.status === "review")
+              ? "这些题正在错题本里按计划复习，先完成今日任务吧。"
+              : "这里的题目还在准备中。",
+        );
       setQueue(selected);
       setIndex(0);
       setAnswer("");
@@ -196,6 +264,13 @@ export default function Home() {
       setRound([]);
       attemptId.current = crypto.randomUUID();
     });
+  }
+  function startTodayTask() {
+    if (todayTask.kind === "correction")
+      return void start(undefined, todayTask.ids, "correction");
+    if (todayTask.kind === "review")
+      return void start(undefined, todayTask.ids, "review");
+    return void start();
   }
   async function submit() {
     if (!current || result || !answer.trim() || disabled) return;
@@ -262,7 +337,8 @@ export default function Home() {
       {(all ? topics : topics.slice(0, 4)).map((t) => {
         const Icon = topicIcons[t.icon as keyof typeof topicIcons];
         const answered = attempts.filter(
-          (a) => a.question.topic === t.id && a.correct,
+          (a) =>
+            a.mode === "practice" && a.question.topic === t.id && a.correct,
         );
         return (
           <button
@@ -279,7 +355,7 @@ export default function Home() {
             <div className="topic-bottom">
               <span>
                 {answered.length
-                  ? `已答对 ${new Set(answered.map((a) => a.question_id)).size} 道题`
+                  ? `练习答对 ${new Set(answered.map((a) => a.question_id)).size} 道题`
                   : "开始探索"}
               </span>
               <ArrowRight size={18} />
@@ -408,7 +484,9 @@ export default function Home() {
                       ? "还没学会的题已收进错题本，一起再想想。"
                       : mode === "correction"
                         ? "订正完成！明天再来回忆一次，记得更牢。"
-                        : "把今天的小收获记下来吧。"}
+                        : mode === "review"
+                          ? "这次回忆完成！下一次复习会在合适的时候出现。"
+                          : "把今天的小收获记下来吧。"}
                   </div>
                   <div className="button-row">
                     <button
@@ -422,16 +500,10 @@ export default function Home() {
                     </button>
                     <button
                       className="primary"
-                      onClick={() => {
-                        setQueue([]);
-                        setDone(false);
-                        setView(
-                          round.some((a) => !a.correct) ? "mistakes" : "review",
-                        );
-                      }}
+                      disabled={disabled}
+                      onClick={startTodayTask}
                     >
-                      去{round.some((a) => !a.correct) ? "错题本" : "复盘"}{" "}
-                      <ArrowRight size={17} />
+                      {todayActionLabel} <ArrowRight size={17} />
                     </button>
                   </div>
                 </div>
@@ -455,8 +527,9 @@ export default function Home() {
                     <span className="muted">慢慢想，不计时</span>
                   </div>
                   <Progress
-                    value={(index / queue.length) * 100}
+                    value={((index + 1) / queue.length) * 100}
                     className="practice-progress"
+                    aria-label={`本轮练习进度 ${index + 1}/${queue.length}`}
                   />
                   <div className="question-panel panel">
                     <div className="question-meta">
@@ -675,20 +748,38 @@ export default function Home() {
                             <Sparkles size={15} /> 今日小目标
                           </div>
                           <h2>
-                            数学小探险，
+                            {todayHeadline}
                             <br />
-                            从一道题开始。
+                            {todayTask.kind === "correction"
+                              ? "从认真订正开始。"
+                              : todayTask.kind === "review"
+                                ? "让知识记得更牢。"
+                                : dailyProgress >= dailyGoal
+                                  ? "为坚持的你点赞。"
+                                  : "从一道题开始。"}
                           </h2>
-                          <p>每天练习 5 道题，让知识一点点扎根。</p>
+                          <p>{todayDescription}</p>
                           <button
                             className="primary"
                             disabled={disabled}
-                            onClick={() => void start()}
+                            onClick={startTodayTask}
                           >
-                            开始今日练习 <ArrowRight size={18} />
+                            {todayActionLabel} <ArrowRight size={18} />
                           </button>
+                          <div className="daily-goal">
+                            <div>
+                              <span>今日练习</span>
+                              <b>
+                                {dailyProgress}/{dailyGoal}
+                              </b>
+                            </div>
+                            <Progress
+                              value={(dailyProgress / dailyGoal) * 100}
+                              aria-label={`今日练习进度 ${dailyProgress}/${dailyGoal}`}
+                            />
+                          </div>
                           <div className="hero-foot">
-                            5 道精选题 <i /> 不计时，认真想
+                            先订正与复习 <i /> 再探索新知识
                           </div>
                           <div className="math-art" aria-hidden="true">
                             <span>2</span>
@@ -703,11 +794,14 @@ export default function Home() {
                             <Star size={19} />
                           </div>
                           <div className="growth-number">
-                            {summary.total} <small>道题，积累中</small>
+                            {summary.uniquePractice}{" "}
+                            <small>道不同题目，探索中</small>
                           </div>
                           <p>
-                            {summary.total
-                              ? `已经在 ${summary.days} 天里留下了努力的足迹`
+                            {summary.streak
+                              ? `连续学习 ${summary.streak} 天，已经累计学习 ${summary.days} 天`
+                              : summary.total
+                                ? `已经在 ${summary.days} 天里留下了努力的足迹`
                               : "你的第一份进步，从今天开始"}
                           </p>
                           <div className="week">
@@ -828,6 +922,32 @@ export default function Home() {
                           <p>已经掌握</p>
                         </div>
                       </div>
+                      {(pending.length > 0 || due.length > 0) && (
+                        <section className="task-callout panel">
+                          <div>
+                            <span className="pill">
+                              <Sparkles size={14} /> 今天先做这一项
+                            </span>
+                            <h2>
+                              {pending.length
+                                ? `把 ${Math.min(pending.length, 5)} 道错题订正清楚`
+                                : `${Math.min(due.length, 5)} 道题到了回忆时间`}
+                            </h2>
+                            <p>
+                              {pending.length
+                                ? "说清错在哪里，再做一次，理解会更扎实。"
+                                : "按时回忆一次，比马上重复很多遍更容易记牢。"}
+                            </p>
+                          </div>
+                          <button
+                            className="primary"
+                            disabled={disabled}
+                            onClick={startTodayTask}
+                          >
+                            {todayActionLabel} <ArrowRight size={17} />
+                          </button>
+                        </section>
+                      )}
                       <div className="list-controls">
                         <Tabs value={filter} onValueChange={setFilter}>
                           <TabsList className="filter-tabs">
@@ -853,11 +973,16 @@ export default function Home() {
                                 topics.find((t) => t.id === m.question.topic)
                                   ?.name === topicFilter),
                           )
-                          .map((m) => (
-                            <article
-                              className="mistake-card panel"
-                              key={m.question.id}
-                            >
+                          .map((m) => {
+                            const reviewDue =
+                              m.status === "review" &&
+                              Boolean(m.dueAt) &&
+                              chinaDay(m.dueAt!) <= chinaDay(new Date(now));
+                            return (
+                              <article
+                                className="mistake-card panel"
+                                key={m.question.id}
+                              >
                               <div className="section-heading">
                                 <span className="pill">
                                   {
@@ -870,7 +995,7 @@ export default function Home() {
                                   {m.status === "pending"
                                     ? "待订正"
                                     : m.status === "review"
-                                      ? "待复习"
+                                      ? `待复习 ${m.reviewStep + 1}/3`
                                       : "已掌握"}
                                 </span>
                               </div>
@@ -884,37 +1009,63 @@ export default function Home() {
                                   我的发现：{m.last.reason}
                                 </p>
                               )}
+                              {m.status !== "pending" && (
+                                <div
+                                  className="review-steps"
+                                  aria-label={`已完成 ${m.reviewStep} 次间隔复习，共 3 次`}
+                                >
+                                  {[0, 1, 2].map((step) => (
+                                    <i
+                                      key={step}
+                                      className={
+                                        step < m.reviewStep ? "complete" : ""
+                                      }
+                                    />
+                                  ))}
+                                  <span>{m.reviewStep}/3 次复习完成</span>
+                                </div>
+                              )}
                               <div className="mistake-footer">
                                 <span className="muted">
                                   {m.status === "pending"
                                     ? "再做一次，看看哪里卡住了"
                                     : m.status === "review"
-                                      ? m.dueAt! <= new Date(now).toISOString()
-                                        ? "到了回忆复习的时间"
-                                        : `建议 ${chinaDay(m.dueAt!)} 再练一次`
-                                      : "你已经在间隔复习中答对了"}
+                                      ? reviewDue
+                                        ? `第 ${m.reviewStep + 1} 次回忆，今天可以开始`
+                                        : `第 ${m.reviewStep + 1} 次复习安排在 ${chinaDay(m.dueAt!)}`
+                                      : "完成了 3 次间隔复习，已经掌握"}
                                 </span>
                                 <button
                                   className="secondary"
-                                  disabled={disabled}
+                                  disabled={
+                                    disabled ||
+                                    (m.status === "review" && !reviewDue)
+                                  }
                                   onClick={() =>
                                     void start(
                                       undefined,
                                       [m.question.id],
                                       m.status === "pending"
                                         ? "correction"
-                                        : "review",
+                                        : m.status === "review"
+                                          ? "review"
+                                          : "practice",
                                     )
                                   }
                                 >
                                   {m.status === "pending"
                                     ? "我来订正"
-                                    : "再练一次"}{" "}
+                                    : m.status === "review"
+                                      ? reviewDue
+                                        ? `开始第 ${m.reviewStep + 1} 次复习`
+                                        : "还没到复习时间"
+                                      : "继续巩固"}{" "}
                                   <ArrowRight size={16} />
                                 </button>
                               </div>
-                            </article>
-                          ))}
+                              </article>
+                            );
+                          })}
                       </div>
                       {mistakes.filter(
                         (m) =>
@@ -1011,7 +1162,7 @@ export default function Home() {
                                   : "今天没有待完成的复习。"}
                             </p>
                             <p className="muted">
-                              订正后间隔至少一天，再次答对，才会标记“已掌握”。
+                              订正后按 1、3、7 天节奏回忆，完成 3 次才会标记“已掌握”。
                             </p>
                             <button
                               className="primary"

@@ -363,6 +363,28 @@ h1 {
   background: #9bacc3;
   border-radius: 50%;
 }
+.daily-goal {
+  width: min(280px, 65%);
+  margin-top: 17px;
+  position: relative;
+  z-index: 1;
+}
+.daily-goal > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #6681a9;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.daily-goal b {
+  color: #387cf4;
+  font-size: 13px;
+}
+.daily-goal [data-slot="progress"] {
+  height: 7px;
+  background: #d8e6fb;
+}
 .math-art {
   position: absolute;
   right: 25px;
@@ -780,6 +802,12 @@ footer {
   justify-content: center;
   font-size: 14px;
 }
+.secondary:disabled {
+  opacity: 1;
+  color: #526985;
+  background: #f1f5fa;
+  border-color: #d7e0ec;
+}
 .stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -840,6 +868,28 @@ footer {
   display: grid;
   gap: 17px;
 }
+.task-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 24px;
+  background: #f7faff;
+  border-color: #dfeaff;
+}
+.task-callout h2 {
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.task-callout p {
+  margin-top: 7px;
+  color: #71829a;
+  font-size: 13px;
+}
+.task-callout .primary {
+  flex-shrink: 0;
+}
 .mistake-card {
   padding: 24px;
 }
@@ -868,6 +918,23 @@ footer {
 .status-tag.mastered {
   background: #eaf7f1;
   color: #548d78;
+}
+.review-steps {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 15px;
+  color: #8190a4;
+  font-size: 12px;
+}
+.review-steps i {
+  width: 20px;
+  height: 6px;
+  border-radius: 8px;
+  background: #e7edf5;
+}
+.review-steps i.complete {
+  background: #69ae91;
 }
 .mistake-footer {
   display: flex;
@@ -1392,6 +1459,13 @@ footer > span {
   .mistake-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .task-callout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .task-callout .primary {
+    width: 100%;
   }
   .question-panel {
     padding: 24px 20px;
