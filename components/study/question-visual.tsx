@@ -22,7 +22,7 @@ export function QuestionVisual({ question }: { question: Question }) {
       className="clock-face"
       viewBox="0 0 220 220"
       role="img"
-      aria-label="观察钟面上的时针和分针"
+      aria-label={`钟面显示 ${v.hour} 点${v.minute ? ` ${v.minute} 分` : "整"}`}
     >
       <circle
         cx="110"

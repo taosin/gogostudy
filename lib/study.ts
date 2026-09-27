@@ -20,6 +20,11 @@ const chinaDayFormatter = new Intl.DateTimeFormat("en-CA", {
   month: "2-digit",
   day: "2-digit",
 });
+const chinaShortDateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  month: "long",
+  day: "numeric",
+});
 
 function addDays(value: string, days: number) {
   return new Date(Date.parse(value) + days * DAY_MS).toISOString();
@@ -89,6 +94,17 @@ export function millisecondsUntilNextChinaDay(now = Date.now()) {
   const chinaTime = now + CHINA_OFFSET_MS;
   const nextDay = (Math.floor(chinaTime / DAY_MS) + 1) * DAY_MS;
   return nextDay - chinaTime;
+}
+export function friendlyChinaDate(
+  value: Date | string | number,
+  now: Date | string | number = new Date(),
+) {
+  const target = new Date(value);
+  const current = new Date(now);
+  const targetDay = chinaDay(target);
+  if (targetDay === chinaDay(current)) return "今天";
+  if (targetDay === chinaDay(new Date(current.getTime() + DAY_MS))) return "明天";
+  return chinaShortDateFormatter.format(target);
 }
 export function stats(attempts: Attempt[], now: Date | string = new Date()) {
   const current = new Date(now);

@@ -6,6 +6,7 @@ import {
   stats,
   chinaDay,
   getTodayTask,
+  friendlyChinaDate,
   millisecondsUntilNextChinaDay,
   rotateForChinaDay,
 } from "../lib/study";
@@ -182,6 +183,13 @@ test("study days use China time near midnight", () => {
     millisecondsUntilNextChinaDay(Date.parse("2026-09-27T15:59:59Z")),
     1000,
   );
+});
+
+test("review dates use child-friendly China calendar labels", () => {
+  const now = "2026-09-27T15:30:00Z";
+  assert.equal(friendlyChinaDate("2026-09-27T15:59:00Z", now), "今天");
+  assert.equal(friendlyChinaDate("2026-09-27T16:01:00Z", now), "明天");
+  assert.equal(friendlyChinaDate("2026-10-03T01:00:00Z", now), "10月3日");
 });
 
 test("Supabase offset timestamps use the same review interval as ISO UTC timestamps", () => {

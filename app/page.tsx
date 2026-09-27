@@ -47,7 +47,6 @@ import {
 } from "@/components/ui/dialog";
 import { Picker } from "@/components/study/course-picker";
 import { QuestionVisual } from "@/components/study/question-visual";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
   topics,
@@ -65,6 +64,7 @@ import {
   stats,
   chinaDay,
   getTodayTask,
+  friendlyChinaDate,
   millisecondsUntilNextChinaDay,
   rotateForChinaDay,
 } from "@/lib/study";
@@ -120,6 +120,7 @@ export default function Home() {
   const [view, setView] = useState<View>("home"),
     [settings, setSettings] = useState(false),
     [draft, setDraft] = useState<Course>(defaultCourse),
+    [leaveTarget, setLeaveTarget] = useState<View | null>(null),
     [authOpen, setAuthOpen] = useState(false),
     [authEmail, setAuthEmail] = useState(""),
     [code, setCode] = useState(""),
@@ -127,6 +128,7 @@ export default function Home() {
     [authMessage, setAuthMessage] = useState("");
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
+    [success, setSuccess] = useState(""),
     [filter, setFilter] = useState("all"),
     [topicFilter, setTopicFilter] = useState("全部知识点");
   const [queue, setQueue] = useState<Question[]>([]),
@@ -134,13 +136,22 @@ export default function Home() {
     [answer, setAnswer] = useState(""),
     [result, setResult] = useState<Attempt | null>(null),
     [hint, setHint] = useState(false),
+    [retryCount, setRetryCount] = useState(0),
+    [showSolution, setShowSolution] = useState(false),
     [mode, setMode] = useState<Attempt["mode"]>("practice"),
     [reason, setReason] = useState(""),
     [done, setDone] = useState(false),
     [round, setRound] = useState<Attempt[]>([]),
-    [reflection, setReflection] = useState("");
+    [reflection, setReflection] = useState(""),
+    [sessionMistakeIds, setSessionMistakeIds] = useState<Set<string>>(
+      () => new Set(),
+    );
   const attemptId = useRef("");
   const reflectionId = useRef("");
+  const viewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const questionTitleRef = useRef<HTMLHeadingElement>(null);
+  const answerInputRef = useRef<HTMLInputElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const key = courseKey(state.course),
     available = supportedCourse(state.course);
   useEffect(() => {
@@ -152,6 +163,19 @@ export default function Home() {
     const timer = window.setTimeout(() => preloadQuestions(key), 250);
     return () => window.clearTimeout(timer);
   }, [available, key, loading, ready]);
+  useEffect(() => {
+    if (!result) return;
+    const frame = window.requestAnimationFrame(() => {
+      feedbackRef.current?.focus({ preventScroll: true });
+      feedbackRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "nearest",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [result, showSolution]);
   const attempts = useMemo(
     () => state.attempts.filter((a) => a.course_key === key),
     [key, state.attempts],
@@ -218,15 +242,48 @@ export default function Home() {
   const dailyGoal = 5,
     dailyProgress = Math.min(summary.todayPractice, dailyGoal);
   const current = queue[index];
+  const solutionVisible = Boolean(
+    result && (result.correct || retryCount > 0 || showSolution),
+  );
+  const completedCount = Math.min(
+    queue.length,
+    index + (solutionVisible ? 1 : 0),
+  );
+  const roundCorrect = round.filter((attempt) => attempt.correct).length;
+  const firstTryCorrect = Math.max(0, round.length - sessionMistakeIds.size);
   const disabled = !ready || loading || busy || Boolean(error);
   const title = navigation.find((n) => n.id === view)!.label;
+  const topbarTitle = queue.length
+    ? done
+      ? "本次小收获"
+      : mode === "practice"
+        ? "今日练习"
+        : mode === "correction"
+          ? "错题订正"
+          : "回忆复习"
+    : title;
+  const feedbackTitle = !result
+    ? ""
+    : result.correct
+      ? retryCount > 0 || hint
+        ? "你顺着提示想出来了！"
+        : mode === "correction"
+          ? "订正完成，方法更清楚了！"
+          : mode === "review"
+            ? "这次回忆想起来了！"
+            : "你自己找到了方法！"
+      : solutionVisible
+        ? mode === "review"
+          ? "这道题先回到待订正，慢慢来。"
+          : "先看懂方法，下次会更有把握。"
+        : "再想一步，你快找到了。";
   const todayActionLabel =
       todayTask.kind === "correction"
         ? `先订正 ${todayTask.count} 道错题`
         : todayTask.kind === "review"
           ? `开始 ${todayTask.count} 道到期复习`
           : dailyProgress >= dailyGoal
-            ? "再挑战 5 道题"
+            ? "看看今天的收获"
             : "开始今日练习",
     todayHeadline =
       todayTask.kind === "correction"
@@ -242,24 +299,56 @@ export default function Home() {
         : todayTask.kind === "review"
           ? "按时回忆，比连续重复更容易记牢。"
           : dailyProgress >= dailyGoal
-            ? "已经完成 5 道练习，还可以继续探索。"
+            ? "已经完成 5 道练习，去看看今天的收获吧。"
             : `今天已练 ${dailyProgress} 道，再完成 ${dailyGoal - dailyProgress} 道就达成目标。`;
-  function navigate(next: View) {
-    if (busy) return;
-    if (
-      queue.length &&
-      !done &&
-      !window.confirm("要结束这次练习吗？已经提交的答案会保留。")
-    )
-      return;
+  useEffect(() => {
+    if (!current || result) return;
+    const frame = window.requestAnimationFrame(() => {
+      (answerInputRef.current || questionTitleRef.current)?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [current, result, retryCount]);
+  function finishNavigation(next: View) {
     setView(next);
     setQueue([]);
     setDone(false);
+    setLeaveTarget(null);
     setNotice("");
+    setSuccess("");
+    window.requestAnimationFrame(() => {
+      viewHeadingRef.current?.focus({ preventScroll: true });
+      window.scrollTo({
+        top: 0,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+    });
+  }
+  function navigate(next: View) {
+    if (busy) return;
+    if (queue.length && !done) {
+      setLeaveTarget(next);
+      return;
+    }
+    finishNavigation(next);
+  }
+  function restorePracticeFocus() {
+    window.requestAnimationFrame(() => {
+      const target = result
+        ? feedbackRef.current
+        : answerInputRef.current || questionTitleRef.current;
+      target?.focus({ preventScroll: true });
+    });
+  }
+  function resumePractice() {
+    setLeaveTarget(null);
+    restorePracticeFocus();
   }
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setNotice("");
+    setSuccess("");
     try {
       await work();
     } catch (e) {
@@ -319,10 +408,13 @@ export default function Home() {
       setAnswer("");
       setResult(null);
       setHint(false);
+      setRetryCount(0);
+      setShowSolution(false);
       setMode(nextMode);
       setReason("");
       setDone(false);
       setRound([]);
+      setSessionMistakeIds(new Set());
       attemptId.current = crypto.randomUUID();
     });
   }
@@ -331,6 +423,7 @@ export default function Home() {
       return void start(undefined, todayTask.ids, "correction");
     if (todayTask.kind === "review")
       return void start(undefined, todayTask.ids, "review");
+    if (dailyProgress >= dailyGoal) return navigate("review");
     return void start();
   }
   async function submit() {
@@ -340,22 +433,49 @@ export default function Home() {
         id: attemptId.current,
         questionId: current.id,
         answer,
-        mode,
+        mode: retryCount > 0 ? "correction" : mode,
         reason,
       });
+      if (!attempt.correct) {
+        setHint(true);
+        setSessionMistakeIds((ids) => new Set(ids).add(current.id));
+      }
       setResult(attempt);
-      setRound((r) => [...r, attempt]);
+      setRound((items) => [
+        ...items.filter((item) => item.question_id !== attempt.question_id),
+        attempt,
+      ]);
     });
+  }
+  function retryCurrent() {
+    if (!result || result.correct || retryCount > 0) return;
+    setRetryCount(1);
+    setShowSolution(false);
+    setResult(null);
+    setAnswer("");
+    setHint(true);
+    attemptId.current = crypto.randomUUID();
   }
   function next() {
     if (index + 1 >= queue.length) {
       setDone(true);
+      window.requestAnimationFrame(() => {
+        viewHeadingRef.current?.focus({ preventScroll: true });
+        window.scrollTo({
+          top: 0,
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth",
+        });
+      });
       return;
     }
     setIndex((i) => i + 1);
     setAnswer("");
     setResult(null);
     setHint(false);
+    setRetryCount(0);
+    setShowSolution(false);
     setReason("");
     attemptId.current = crypto.randomUUID();
   }
@@ -426,6 +546,9 @@ export default function Home() {
   );
   return (
     <SidebarProvider>
+      <a className="skip-link" href="#main-content">
+        跳到主要内容
+      </a>
       <Sidebar className="school-sidebar">
         <SidebarHeader>
           <button className="brand" onClick={() => navigate("home")}>
@@ -439,24 +562,27 @@ export default function Home() {
           </button>
         </SidebarHeader>
         <SidebarContent>
-          <p className="nav-label">我的学习空间</p>
-          <SidebarMenu>
-            {navigation.map((n) => (
-              <SidebarMenuItem key={n.id}>
-                <NavigationButton
-                  className="nav-button"
-                  isActive={view === n.id}
-                  onClick={() => navigate(n.id)}
-                >
-                  <n.icon size={21} />
-                  <span>{n.label}</span>
-                  {n.id === "mistakes" && pending.length > 0 && (
-                    <span className="count-badge">{pending.length}</span>
-                  )}
-                </NavigationButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+          <nav aria-label="学习页面">
+            <p className="nav-label">我的学习空间</p>
+            <SidebarMenu>
+              {navigation.map((n) => (
+                <SidebarMenuItem key={n.id}>
+                  <NavigationButton
+                    className="nav-button"
+                    isActive={view === n.id}
+                    aria-current={view === n.id ? "page" : undefined}
+                    onClick={() => navigate(n.id)}
+                  >
+                    <n.icon size={21} />
+                    <span>{n.label}</span>
+                    {n.id === "mistakes" && pending.length > 0 && (
+                      <span className="count-badge">{pending.length}</span>
+                    )}
+                  </NavigationButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </nav>
         </SidebarContent>
         <SidebarFooter>
           <div className="sidebar-note">
@@ -466,7 +592,7 @@ export default function Home() {
           </div>
           <button
             className="profile"
-            disabled={!ready || busy}
+            disabled={!ready || busy || (!!queue.length && !done)}
             onClick={() => {
               setAuthOpen(true);
               setNotice("");
@@ -484,15 +610,14 @@ export default function Home() {
           </button>
         </SidebarFooter>
       </Sidebar>
-      <main className="workspace">
+      <main className="workspace" id="main-content" tabIndex={-1}>
         <header className="topbar">
           <div className="topbar-title">
             <SidebarTrigger className="mobile-menu" aria-label="打开学习菜单" />
-            <span>
-              我的学习 / <b>{title}</b>
-            </span>
+            <span className="breadcrumb-prefix">我的学习 /</span>
+            <b>{topbarTitle}</b>
           </div>
-          <div className="topbar-actions">
+          {!queue.length && <div className="topbar-actions">
             <button
               className="text-button"
               disabled={!ready || busy}
@@ -511,9 +636,9 @@ export default function Home() {
               <Settings2 size={16} />
               <span>学习设置</span>
             </button>
-          </div>
+          </div>}
         </header>
-        <div className="page-body">
+        <div className={`page-body${queue.length ? " focus-mode" : ""}`}>
           {error && (
             <div className="message error" role="alert">
               {error}
@@ -525,6 +650,11 @@ export default function Home() {
               {notice}
             </div>
           )}
+          {success && !settings && !authOpen && (
+            <div className="message success" role="status">
+              <CheckCircle2 size={19} /> {success}
+            </div>
+          )}
           {queue.length > 0 ? (
             <section className="practice-workspace">
               {done ? (
@@ -532,38 +662,74 @@ export default function Home() {
                   <span className="completion-icon">
                     <GraduationCap size={42} />
                   </span>
-                  <p className="eyebrow">ONE MORE LITTLE STEP</p>
-                  <h1>认真思考的你，真棒！</h1>
-                  <p>
-                    这次完成 {round.length} 道题，答对{" "}
-                    {round.filter((a) => a.correct).length} 道。
-                  </p>
+                  <p className="eyebrow">本次小收获</p>
+                  <h1 ref={viewHeadingRef} tabIndex={-1}>
+                    {round.some((attempt) => !attempt.correct)
+                      ? "完成这一轮，就是进步！"
+                      : sessionMistakeIds.size
+                        ? "愿意再想一次，真了不起！"
+                        : "这轮思路很清楚！"}
+                  </h1>
+                  <div className="completion-stats" aria-label="本轮练习结果">
+                    <div>
+                      <strong>{round.length}</strong>
+                      <span>完成题目</span>
+                    </div>
+                    <div>
+                      <strong>{firstTryCorrect}</strong>
+                      <span>一次答对</span>
+                    </div>
+                    <div>
+                      <strong>{sessionMistakeIds.size}</strong>
+                      <span>认真再想</span>
+                    </div>
+                  </div>
+                  <div className="completion-topics">
+                    {[...new Set(round.map((attempt) => attempt.question.topic))].map(
+                      (topic) => (
+                        <span className="pill" key={topic}>
+                          {topics.find((item) => item.id === topic)?.name}
+                        </span>
+                      ),
+                    )}
+                  </div>
                   <div className="completion-note">
-                    {round.some((a) => !a.correct)
-                      ? "还没学会的题已收进错题本，一起再想想。"
+                    {roundCorrect < round.length
+                      ? `${round.length - roundCorrect} 道题还可以再想一次，已经放进错题本。`
+                      : sessionMistakeIds.size
+                        ? `${sessionMistakeIds.size} 道题借助提示想明白了，明天会安排回忆。`
                       : mode === "correction"
-                        ? "订正完成！明天再来回忆一次，记得更牢。"
+                        ? "订正完成，明天会安排第 1 次回忆。"
                         : mode === "review"
-                          ? "这次回忆完成！下一次复习会在合适的时候出现。"
+                          ? "这次回忆完成，下一次会在合适的时间出现。"
                           : "把今天的小收获记下来吧。"}
                   </div>
                   <div className="button-row">
                     <button
-                      className="secondary"
-                      onClick={() => {
-                        setQueue([]);
-                        setDone(false);
-                      }}
+                      className={
+                        todayTask.kind === "practice" ? "primary" : "secondary"
+                      }
+                      onClick={() => finishNavigation("home")}
                     >
-                      返回学习
+                      {todayTask.kind === "practice" ? "完成今天学习" : "稍后再做"}
                     </button>
-                    <button
-                      className="primary"
-                      disabled={disabled}
-                      onClick={startTodayTask}
-                    >
-                      {todayActionLabel} <ArrowRight size={17} />
-                    </button>
+                    {todayTask.kind !== "practice" ? (
+                      <button
+                        className="primary"
+                        disabled={disabled}
+                        onClick={startTodayTask}
+                      >
+                        {todayActionLabel} <ArrowRight size={17} />
+                      </button>
+                    ) : (
+                      <button
+                        className="secondary"
+                        disabled={disabled}
+                        onClick={() => void start()}
+                      >
+                        我还想再练
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -583,12 +749,14 @@ export default function Home() {
                           : "回忆再练"}{" "}
                       · 第 {index + 1} / {queue.length} 题
                     </span>
-                    <span className="muted">慢慢想，不计时</span>
+                    <span className="muted">
+                      已完成 {completedCount}/{queue.length} · 不计时
+                    </span>
                   </div>
                   <Progress
-                    value={((index + 1) / queue.length) * 100}
+                    value={(completedCount / queue.length) * 100}
                     className="practice-progress"
-                    aria-label={`本轮练习进度 ${index + 1}/${queue.length}`}
+                    aria-label={`本轮练习已完成 ${completedCount}/${queue.length}`}
                   />
                   <div className="question-panel panel">
                     <div className="question-meta">
@@ -597,7 +765,13 @@ export default function Home() {
                       </span>
                       <span>{current.options ? "选一选" : "填一填"}</span>
                     </div>
-                    <h1 className="question-title">{current.prompt}</h1>
+                    <h1
+                      className="question-title"
+                      ref={questionTitleRef}
+                      tabIndex={-1}
+                    >
+                      {current.prompt}
+                    </h1>
                     <QuestionVisual question={current} />
                     <form
                       onSubmit={(e) => {
@@ -607,39 +781,60 @@ export default function Home() {
                     >
                       {current.options ? (
                         <div className="answer-options">
-                          {current.options.map((option, i) => (
-                            <button
-                              key={option}
-                              type="button"
-                              aria-pressed={answer === option}
-                              className={
-                                "answer-option " +
-                                (answer === option ? "selected" : "")
-                              }
-                              disabled={!!result || busy}
-                              onClick={() => setAnswer(option)}
-                            >
-                              <span>{String.fromCharCode(65 + i)}</span>
-                              {option}
-                            </button>
-                          ))}
+                          {current.options.map((option, i) => {
+                            const correctOption =
+                              solutionVisible && option === result?.expected;
+                            const chosenWrong =
+                              Boolean(result && !result.correct) &&
+                              option === result?.answer;
+                            return (
+                              <button
+                                key={option}
+                                type="button"
+                                aria-pressed={answer === option}
+                                className={
+                                  "answer-option " +
+                                  (correctOption
+                                    ? "correct-answer"
+                                    : chosenWrong
+                                      ? "wrong-answer"
+                                      : answer === option
+                                        ? "selected"
+                                        : "")
+                                }
+                                disabled={!!result || busy}
+                                onClick={() => setAnswer(option)}
+                              >
+                                <span>{String.fromCharCode(65 + i)}</span>
+                                {option}
+                                {correctOption && <small>正确答案</small>}
+                                {chosenWrong && !correctOption && (
+                                  <small>我的选择</small>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : (
                         <label className="answer-input-label">
                           <span>我的答案</span>
-                          <input
-                            key={current.id}
-                            autoComplete="off"
-                            aria-label="我的答案"
-                            autoFocus
-                            inputMode="numeric"
-                            value={answer}
-                            onChange={(e) => setAnswer(e.target.value)}
-                            disabled={!!result || busy}
-                            maxLength={100}
-                            placeholder="想好了，写在这里"
-                          />
-                          {current.unit && <b>{current.unit}</b>}
+                          <span className="answer-input-control">
+                            <input
+                              ref={answerInputRef}
+                              key={current.id}
+                              autoComplete="off"
+                              aria-label={`我的答案${current.unit ? `，单位${current.unit}` : ""}`}
+                              aria-describedby={hint ? "question-hint" : undefined}
+                              autoFocus
+                              inputMode="numeric"
+                              value={answer}
+                              onChange={(e) => setAnswer(e.target.value)}
+                              disabled={!!result || busy}
+                              maxLength={100}
+                              placeholder="想好了，写在这里"
+                            />
+                            {current.unit && <b>{current.unit}</b>}
+                          </span>
                         </label>
                       )}
                       {mode === "correction" && !result && (
@@ -659,14 +854,18 @@ export default function Home() {
                         />
                       )}
                       <div className="question-actions">
-                        <button
-                          type="button"
-                          className="text-button"
-                          onClick={() => setHint(!hint)}
-                        >
-                          <Lightbulb size={18} />{" "}
-                          {hint ? "收起小提示" : "给我一点提示"}
-                        </button>
+                        {!result && (
+                          <button
+                            type="button"
+                            className="text-button hint-button"
+                            aria-expanded={hint}
+                            aria-controls="question-hint"
+                            onClick={() => setHint(!hint)}
+                          >
+                            <Lightbulb size={18} />{" "}
+                            {hint ? "收起小提示" : "给我一点提示"}
+                          </button>
+                        )}
                         {!result && (
                           <button
                             className="primary"
@@ -683,21 +882,28 @@ export default function Home() {
                         )}
                       </div>
                     </form>
-                    {hint && <p className="hint-box">{current.hint}</p>}
+                    {hint && (
+                      <p className="hint-box" id="question-hint" role="status">
+                        <Lightbulb size={17} />
+                        <span>{current.hint}</span>
+                      </p>
+                    )}
                     {result && (
                       <div
+                        ref={feedbackRef}
+                        tabIndex={-1}
                         className={
                           "answer-feedback " +
                           (result.correct ? "correct" : "retry")
                         }
                         role="status"
+                        aria-live="polite"
                       >
-                        <h3>
-                          {result.correct
-                            ? "答对啦，给自己一个赞！"
-                            : "还差一点点，我们一起看看。"}
-                        </h3>
-                        {!result.correct && (
+                        <h3>{feedbackTitle}</h3>
+                        {!solutionVisible && (
+                          <p>先顺着上面的小提示想一想，你可以再试一次。</p>
+                        )}
+                        {solutionVisible && !result.correct && (
                           <p>
                             正确答案：
                             <strong>
@@ -707,16 +913,44 @@ export default function Home() {
                             · 你的答案：{result.answer}
                           </p>
                         )}
-                        <p>{result.explanation}</p>
-                        {!result.correct && (
-                          <small>已记入错题本，之后可以重新订正。</small>
+                        {solutionVisible && <p>{result.explanation}</p>}
+                        {!solutionVisible ? (
+                          <small>使用提示不会扣分，慢慢想就好。</small>
+                        ) : !result.correct ? (
+                          <small>已放进错题本，之后可以再自己做一次。</small>
+                        ) : retryCount > 0 ? (
+                          <small>这次当场订正完成，明天会再安排一次回忆。</small>
+                        ) : null}
+                        {!solutionVisible ? (
+                          <div className="feedback-actions">
+                            <button
+                              className="secondary"
+                              type="button"
+                              onClick={() => setShowSolution(true)}
+                            >
+                              看看解法
+                            </button>
+                            <button
+                              className="primary"
+                              type="button"
+                              onClick={retryCurrent}
+                            >
+                              用提示再试一次 <RotateCcw size={17} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="primary"
+                            type="button"
+                            autoFocus
+                            onClick={next}
+                          >
+                            {index + 1 === queue.length
+                              ? "查看本次收获"
+                              : "下一道题"}{" "}
+                            <ArrowRight size={18} />
+                          </button>
                         )}
-                        <button className="primary" onClick={next}>
-                          {index + 1 === queue.length
-                            ? "查看本次收获"
-                            : "下一道题"}{" "}
-                          <ArrowRight size={18} />
-                        </button>
                       </div>
                     )}
                   </div>
@@ -729,10 +963,10 @@ export default function Home() {
                 <div>
                   <p className="eyebrow">
                     {view === "home"
-                      ? "HELLO, LITTLE EXPLORER"
-                      : "EVERY LITTLE STEP COUNTS"}
+                      ? "你好，小小探索家"
+                      : "每一步都算数"}
                   </p>
-                  <h1>
+                  <h1 ref={viewHeadingRef} tabIndex={-1}>
                     {view === "home"
                       ? "今天，也向前一小步"
                       : view === "practice"
@@ -869,15 +1103,19 @@ export default function Home() {
                               const active = attemptMetrics.activityDays.has(
                                 chinaDay(date),
                               );
+                              const dayLabel =
+                                i === 6
+                                  ? "今天"
+                                  : weekdayFormatter
+                                      .format(date)
+                                      .replace("周", "");
                               return (
-                                <div key={i}>
-                                  <span>
-                                    {i === 6
-                                      ? "今天"
-                                      : weekdayFormatter
-                                          .format(date)
-                                          .replace("周", "")}
-                                  </span>
+                                <div
+                                  key={i}
+                                  role="img"
+                                  aria-label={`${dayLabel}，${active ? "已学习" : "未学习"}`}
+                                >
+                                  <span>{dayLabel}</span>
                                   <i className={active ? "active" : ""}>
                                     {active && <Check size={15} />}
                                   </i>
@@ -1004,14 +1242,27 @@ export default function Home() {
                         </section>
                       )}
                       <div className="list-controls">
-                        <Tabs value={filter} onValueChange={setFilter}>
-                          <TabsList className="filter-tabs">
-                            <TabsTrigger value="all">全部</TabsTrigger>
-                            <TabsTrigger value="pending">待订正</TabsTrigger>
-                            <TabsTrigger value="review">待复习</TabsTrigger>
-                            <TabsTrigger value="mastered">已掌握</TabsTrigger>
-                          </TabsList>
-                        </Tabs>
+                        <div
+                          className="filter-tabs"
+                          role="group"
+                          aria-label="错题状态筛选"
+                        >
+                          {[
+                            ["all", "全部"],
+                            ["pending", "待订正"],
+                            ["review", "待复习"],
+                            ["mastered", "已掌握"],
+                          ].map(([value, label]) => (
+                            <button
+                              type="button"
+                              key={value}
+                              aria-pressed={filter === value}
+                              onClick={() => setFilter(value)}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
                         <Picker
                           label="知识点"
                           value={topicFilter}
@@ -1079,7 +1330,7 @@ export default function Home() {
                                     : m.status === "review"
                                       ? reviewDue
                                         ? `第 ${m.reviewStep + 1} 次回忆，今天可以开始`
-                                        : `第 ${m.reviewStep + 1} 次复习安排在 ${chinaDay(m.dueAt!)}`
+                                        : `第 ${m.reviewStep + 1} 次复习安排在${friendlyChinaDate(m.dueAt!, now)}`
                                       : "完成了 3 次间隔复习，已经掌握"}
                                 </span>
                                 <button
@@ -1149,7 +1400,7 @@ export default function Home() {
                           <span className="green-text">
                             {summary.practice ? summary.accuracy + "%" : "—"}
                           </span>
-                          <p>练习正确率</p>
+                          <p>第一次作答正确率</p>
                         </div>
                         <div className="mini-stat">
                           <span className="orange">{summary.days}</span>
@@ -1159,11 +1410,11 @@ export default function Home() {
                       <div className="review-grid">
                         <section className="panel review-panel">
                           <div className="section-heading">
-                            <h2>哪些知识更熟练了？</h2>
+                            <h2>第一次练习情况</h2>
                             <ChartNoAxesCombined size={21} />
                           </div>
                           <p className="muted">
-                            按平时练习统计，订正和复习单独记录。
+                            只统计第一次作答，订正和复习会在错题本里继续成长。
                           </p>
                           {topics.map((t) => {
                             const metric = attemptMetrics.topicPractice.get(t.id);
@@ -1174,9 +1425,16 @@ export default function Home() {
                               <div className="topic-progress" key={t.id}>
                                 <div>
                                   <span>{t.name}</span>
-                                  <b>{metric?.total ? pct + "%" : "还没练习"}</b>
+                                  <b>
+                                    {metric?.total
+                                      ? `${metric.correct}/${metric.total} 题 · ${pct}%`
+                                      : "还没练习"}
+                                  </b>
                                 </div>
-                                <Progress value={pct} />
+                                <Progress
+                                  value={pct}
+                                  aria-label={`${t.name}第一次作答正确率 ${metric?.total ? `${metric.correct}/${metric.total} 题，${pct}%` : "还没练习"}`}
+                                />
                               </div>
                             );
                           })}
@@ -1218,13 +1476,37 @@ export default function Home() {
                           </section>
                           <section className="panel review-panel">
                             <h2>记下今天的小收获</h2>
+                            <div
+                              className="reflection-prompts"
+                              aria-label="收获句子开头"
+                            >
+                              {["我学会了：", "我还想练：", "今天最难的是："].map(
+                                (prompt) => (
+                                  <button
+                                    type="button"
+                                    className="secondary"
+                                    key={prompt}
+                                    disabled={busy}
+                                    onClick={() => {
+                                      setReflection(prompt);
+                                      setSuccess("");
+                                    }}
+                                  >
+                                    {prompt}
+                                  </button>
+                                ),
+                              )}
+                            </div>
                             <label className="sr-only" htmlFor="reflection">
                               今天的小收获
                             </label>
                             <textarea
                               id="reflection"
                               value={reflection}
-                              onChange={(e) => setReflection(e.target.value)}
+                              onChange={(e) => {
+                                setReflection(e.target.value);
+                                setSuccess("");
+                              }}
                               placeholder="例如：我学会了个位满十要进一。"
                               maxLength={500}
                             />
@@ -1246,6 +1528,7 @@ export default function Home() {
                                     });
                                     reflectionId.current = "";
                                     setReflection("");
+                                    setSuccess("今天的小收获已保存。");
                                   })
                                 }
                               >
@@ -1317,21 +1600,76 @@ export default function Home() {
               )}
             </>
           )}
-          <footer>
-            <span>
-              {storage === "cloud" ? (
-                <Cloud size={14} />
-              ) : (
-                <HardDrive size={14} />
-              )}{" "}
-              {storage === "cloud"
-                ? "记录已保存到家长账户"
-                : "体验模式 · 记录仅保存在当前浏览器"}
-            </span>
-            <span>GoGo学堂 · 让每一次学习，都有小小收获</span>
-          </footer>
+          {!queue.length && (
+            <footer>
+              <span>
+                {storage === "cloud" ? (
+                  <Cloud size={14} />
+                ) : (
+                  <HardDrive size={14} />
+                )}{" "}
+                {storage === "cloud"
+                  ? "记录已保存到家长账户"
+                  : "体验模式 · 记录仅保存在当前浏览器"}
+              </span>
+              <span>GoGo学堂 · 让每一次学习，都有小小收获</span>
+            </footer>
+          )}
         </div>
       </main>
+      {!queue.length && (
+        <nav className="mobile-bottom-nav" aria-label="主要学习页面">
+          {navigation.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className={view === item.id ? "active" : ""}
+              aria-current={view === item.id ? "page" : undefined}
+              disabled={!ready || busy}
+              onClick={() => navigate(item.id)}
+            >
+              <span className="mobile-nav-icon">
+                <item.icon size={20} />
+                {item.id === "mistakes" && pending.length + due.length > 0 && (
+                  <i>{Math.min(9, pending.length + due.length)}</i>
+                )}
+              </span>
+              <span>{item.label.replace("我的", "")}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      <Dialog
+        open={leaveTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) resumePractice();
+        }}
+      >
+        <DialogContent
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            restorePracticeFocus();
+          }}
+        >
+          <DialogTitle>要先结束这次练习吗？</DialogTitle>
+          <DialogDescription>
+            已经提交的答案会保留，没做完的题下次还可以继续练习。
+          </DialogDescription>
+          <div className="button-row dialog-actions">
+            <button className="secondary" onClick={resumePractice}>
+              继续做题
+            </button>
+            <button
+              className="primary"
+              onClick={() => {
+                if (leaveTarget) finishNavigation(leaveTarget);
+              }}
+            >
+              结束并离开
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={settings} onOpenChange={setSettings}>
         <DialogContent className="settings-dialog">
           <DialogTitle>选择我的课程</DialogTitle>
@@ -1368,6 +1706,7 @@ export default function Home() {
                 setSettings(false);
                 setQueue([]);
                 setView("home");
+                setSuccess("课程已保存。");
               })
             }
           >
