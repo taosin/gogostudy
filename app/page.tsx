@@ -304,7 +304,9 @@ export default function Home() {
   useEffect(() => {
     if (!current || result) return;
     const frame = window.requestAnimationFrame(() => {
-      (answerInputRef.current || questionTitleRef.current)?.focus();
+      (answerInputRef.current || questionTitleRef.current)?.focus({
+        preventScroll: retryCount === 0,
+      });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [current, result, retryCount]);
@@ -416,6 +418,7 @@ export default function Home() {
       setRound([]);
       setSessionMistakeIds(new Set());
       attemptId.current = crypto.randomUUID();
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0 }));
     });
   }
   function startTodayTask() {
@@ -478,6 +481,7 @@ export default function Home() {
     setShowSolution(false);
     setReason("");
     attemptId.current = crypto.randomUUID();
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0 }));
   }
   function openSettings() {
     setDraft(state.course);
