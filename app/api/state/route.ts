@@ -36,6 +36,7 @@ export async function GET(request: Request) {
         .select("*")
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(100),
     ]);
     if (profile.error) throw profile.error;

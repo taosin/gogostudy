@@ -31,20 +31,30 @@ npm start
 
 ## 接入 Supabase
 
-1. 创建 Supabase 项目。
-2. 在 SQL Editor 执行 `supabase/migrations/202609260001_initial.sql`，只执行一次。所有表已开启 RLS，并按 `auth.uid()` 隔离。
-3. 在 Supabase Authentication 开启 Email provider 和允许新用户注册。
-4. 在 Authentication → Email Templates → Magic Link 模板中放入 `{{ .Token }}`，邮件须展示验证码；前端使用 `signInWithOtp` 发送和 `verifyOtp(type: 'email')` 验证。没有实现回调链接登录。
-5. 配置 `.env.local`：
+1. 在新加坡区域创建 Supabase 项目。
+2. 通过 Supabase 的迁移工作流应用 `supabase/migrations/20260926000100_initial.sql`：
+
+   ```sh
+   npx supabase login
+   npx supabase link --project-ref <project-ref>
+   npx supabase db push
+   npx supabase migration list
+   ```
+
+   所有表已开启 RLS，并按 `auth.uid()` 隔离。应用后还要在 Supabase Advisors 中检查 Security 和 Performance；不要在 SQL Editor 中手工维护另一份结构。
+3. 在 Authentication 开启 Email provider 和允许新用户注册。
+4. 在 Authentication → Email Templates 中分别修改 **Confirm signup** 和 **Magic Link** 模板，两个模板都要显示 `{{ .Token }}`。新账户会使用前者，已有账户会使用后者；前端使用 `signInWithOtp` 发送、`verifyOtp(type: 'email')` 验证。
+5. 在 Authentication → URL Configuration 把 Site URL 设为 `https://study.ai-builder.top`，并按需加入本地和 Vercel Preview 地址。
+6. 配置 `.env.local`：
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-6. 重启本地服务，点击“家长登录”，使用家长邮箱收取验证码。
+7. 重启本地服务，点击“家长登录”，使用家长邮箱收取验证码。
 
-只需 publishable key（兼容传统 anon key），**不能填 service_role / secret key**。正式面向用户发送邮件时，配置自己的 SMTP；Supabase 默认邮件服务有收件人与发送速率限制。邮箱验证及远程读写需要真实项目才能验证。
+只需 publishable key（兼容传统 anon key），**不能填 service_role / secret key**。Supabase 默认邮件服务只适合项目成员联调，并有很低的发送速率限制；正式开放注册前必须配置自己的 SMTP。邮箱验证及远程读写需要真实项目才能验证。
 
 家长账户对应一份学习空间；暂不包含多孩子档案。服务端从验证后的 token 读取用户身份，不接受客户端传入用户 ID。数据库有独立 RLS 防护；练习历史采用追加写入，提交 UUID 支持安全重试。
 
@@ -52,8 +62,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
 1. 将此仓库导入 Vercel，**Root Directory 为仓库根目录**，Framework 选 Next.js，Node.js 选 22.x。
 2. Build Command 为 `npm run build`，Install Command 为 `npm ci`，保留默认 Next.js Output Directory。
-3. 在 Preview / Production 分别设置上述两个环境变量。
-4. 确保 Supabase 已执行迁移并设置邮箱模板，然后部署。修改 `NEXT_PUBLIC_*` 后需要重新构建部署。
+3. 在 Production 设置上述两个环境变量。Preview 默认保留体验模式；需要云端联调时，应连接独立的 staging Supabase 项目，避免预览代码访问正式用户数据。
+4. 确保 Supabase 已执行迁移，两个邮箱模板、Site URL 和正式 SMTP 均已配置，然后部署。修改 `NEXT_PUBLIC_*` 后需要重新构建部署。
 5. 未设置变量的部署会明确进入体验模式，不会假装已经云端保存。
 
 也可以在项目根目录运行 `npx vercel` 创建预览部署，确认后运行 `npx vercel --prod`。本项目不包含账户凭据；Vercel 项目关联保存在被忽略的 `.vercel/` 目录。

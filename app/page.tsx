@@ -92,6 +92,16 @@ const weekdayFormatter = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Asia/Shanghai",
   weekday: "short",
 });
+function authRateLimited(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const detail = error as { status?: number; code?: string; message?: string };
+  return (
+    detail.status === 429 ||
+    detail.code === "over_email_send_rate_limit" ||
+    detail.code === "over_request_rate_limit" ||
+    detail.message?.toLowerCase().includes("rate limit") === true
+  );
+}
 export default function Home() {
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -125,7 +135,9 @@ export default function Home() {
     [authEmail, setAuthEmail] = useState(""),
     [code, setCode] = useState(""),
     [codeSent, setCodeSent] = useState(false),
-    [authMessage, setAuthMessage] = useState("");
+    [authMessage, setAuthMessage] = useState(""),
+    [resendAfter, setResendAfter] = useState(0),
+    [authClock, setAuthClock] = useState(0);
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [success, setSuccess] = useState(""),
@@ -152,6 +164,55 @@ export default function Home() {
   const questionTitleRef = useRef<HTMLHeadingElement>(null);
   const answerInputRef = useRef<HTMLInputElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const resendSeconds = resendAfter
+    ? Math.max(0, Math.ceil((resendAfter - authClock) / 1000))
+    : 0;
+  useEffect(() => {
+    if (!resendAfter) return;
+    const delay = Math.max(0, Math.min(1000, resendAfter - Date.now()));
+    const timer = window.setTimeout(() => {
+      const current = Date.now();
+      setAuthClock(current);
+      if (current >= resendAfter) setResendAfter(0);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [authClock, resendAfter]);
+  useEffect(() => {
+    if (ready) return;
+    const timer = window.setTimeout(() => {
+      setView("home");
+      setSettings(false);
+      setDraft(defaultCourse);
+      setAuthOpen(false);
+      setAuthEmail("");
+      setCode("");
+      setCodeSent(false);
+      setAuthMessage("");
+      setResendAfter(0);
+      setAuthClock(0);
+      setNotice("");
+      setSuccess("");
+      setFilter("all");
+      setTopicFilter("全部知识点");
+      setQueue([]);
+      setIndex(0);
+      setAnswer("");
+      setResult(null);
+      setHint(false);
+      setRetryCount(0);
+      setShowSolution(false);
+      setMode("practice");
+      setReason("");
+      setDone(false);
+      setRound([]);
+      setReflection("");
+      setSessionMistakeIds(new Set());
+      setLeaveTarget(null);
+      attemptId.current = "";
+      reflectionId.current = "";
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [ready]);
   const key = courseKey(state.course),
     available = supportedCourse(state.course);
   useEffect(() => {
@@ -488,6 +549,54 @@ export default function Home() {
     setSettings(true);
     setNotice("");
   }
+  function openAuthDialog() {
+    setAuthMessage("");
+    setNotice("");
+    setAuthOpen(true);
+  }
+  function closeAuthDialog() {
+    setAuthMessage("");
+    setNotice("");
+    setAuthOpen(false);
+  }
+  function resetAuthChallenge(clearEmail = false, clearCooldown = false) {
+    setCode("");
+    setCodeSent(false);
+    setAuthMessage("");
+    setNotice("");
+    if (clearCooldown) {
+      setResendAfter(0);
+      setAuthClock(0);
+    }
+    if (clearEmail) setAuthEmail("");
+  }
+  function startAuthCooldown() {
+    const startedAt = Date.now();
+    setAuthClock(startedAt);
+    setResendAfter(startedAt + 60_000);
+  }
+  async function sendAuthCode() {
+    if (resendAfter > Date.now())
+      throw new Error("请等待 60 秒后再重新发送验证码。");
+    const client = await getSupabase();
+    if (!client)
+      throw new Error("家长账户暂未开放，目前可使用本机体验模式。");
+    const { error } = await client.auth.signInWithOtp({
+      email: authEmail.trim(),
+      options: { shouldCreateUser: true },
+    });
+    if (error) {
+      if (authRateLimited(error)) {
+        startAuthCooldown();
+        throw new Error("验证码请求过于频繁，请等待 60 秒后再试。");
+      }
+      throw new Error("验证码未能发送，请检查邮箱或稍后重试。");
+    }
+    setCode("");
+    setCodeSent(true);
+    startAuthCooldown();
+    setAuthMessage("验证码已发送，请查看邮箱（也看看垃圾邮件）。");
+  }
   async function authSubmit() {
     setAuthMessage("");
     await run(async () => {
@@ -495,24 +604,21 @@ export default function Home() {
       if (!client)
         throw new Error("家长账户暂未开放，目前可使用本机体验模式。");
       if (!codeSent) {
-        const { error } = await client.auth.signInWithOtp({
-          email: authEmail.trim(),
-          options: { shouldCreateUser: true },
-        });
-        if (error) throw new Error("验证码未能发送，请检查邮箱或稍后重试。");
-        setCodeSent(true);
-        setAuthMessage("验证码已发送，请查看邮箱（也看看垃圾邮件）。");
+        await sendAuthCode();
       } else {
         const { error } = await client.auth.verifyOtp({
           email: authEmail.trim(),
           token: code.trim(),
           type: "email",
         });
-        if (error) throw new Error("验证码不正确或已过期，请重新获取。");
+        if (error) {
+          if (authRateLimited(error))
+            throw new Error("验证尝试过于频繁，请稍后再试。");
+          throw new Error("验证码不正确或已过期，请重新获取。");
+        }
         await study.reload();
-        setAuthOpen(false);
-        setCode("");
-        setCodeSent(false);
+        resetAuthChallenge(true, true);
+        closeAuthDialog();
         setQueue([]);
       }
     });
@@ -597,10 +703,7 @@ export default function Home() {
           <button
             className="profile"
             disabled={!ready || busy || (!!queue.length && !done)}
-            onClick={() => {
-              setAuthOpen(true);
-              setNotice("");
-            }}
+            onClick={openAuthDialog}
           >
             <span>学</span>
             <div>
@@ -625,7 +728,7 @@ export default function Home() {
             <button
               className="text-button"
               disabled={!ready || busy}
-              onClick={() => setAuthOpen(true)}
+              onClick={openAuthDialog}
               aria-label={storage === "cloud" ? "家长账户" : "家长登录"}
             >
               {storage === "cloud" ? <Cloud size={16} /> : <LogIn size={16} />}
@@ -659,7 +762,7 @@ export default function Home() {
               <CheckCircle2 size={19} /> {success}
             </div>
           )}
-          {queue.length > 0 ? (
+          {ready && !loading && queue.length > 0 ? (
             <section className="practice-workspace">
               {done ? (
                 <div className="completion panel">
@@ -1718,7 +1821,13 @@ export default function Home() {
           </button>
         </DialogContent>
       </Dialog>
-      <Dialog open={authOpen} onOpenChange={setAuthOpen}>
+      <Dialog
+        open={authOpen}
+        onOpenChange={(open) => {
+          if (open) openAuthDialog();
+          else closeAuthDialog();
+        }}
+      >
         <DialogContent>
           <DialogTitle>
             {storage === "cloud" ? "家长账户" : "家长来登录"}
@@ -1741,10 +1850,11 @@ export default function Home() {
                   void run(async () => {
                     const client = await getSupabase();
                     if (!client) throw new Error("登录服务暂不可用，请稍后重试。");
-                    const r = await client.auth.signOut();
+                    const r = await client.auth.signOut({ scope: "local" });
                     if (r.error) throw new Error("退出失败，请重试。");
                     await study.reload();
-                    setAuthOpen(false);
+                    resetAuthChallenge(true, true);
+                    closeAuthDialog();
                     setQueue([]);
                   })
                 }
@@ -1759,7 +1869,7 @@ export default function Home() {
               <p>
                 现在可以直接体验练习、错题订正和复盘，记录保存在当前浏览器。
               </p>
-              <button className="primary" onClick={() => setAuthOpen(false)}>
+              <button className="primary" onClick={closeAuthDialog}>
                 继续体验
               </button>
             </div>
@@ -1799,21 +1909,44 @@ export default function Home() {
               <p className="settings-note">
                 本机体验记录与账户记录分别保存，登录后显示账户中的学习记录。
               </p>
-              <button className="primary" disabled={busy}>
-                {busy ? "请稍候…" : codeSent ? "验证并登录" : "发送验证码"}
+              <button
+                className="primary"
+                disabled={busy || (!codeSent && resendSeconds > 0)}
+              >
+                {busy
+                  ? "请稍候…"
+                  : codeSent
+                    ? "验证并登录"
+                    : resendSeconds > 0
+                      ? `${resendSeconds} 秒后可重新发送`
+                      : "发送验证码"}
               </button>
               {codeSent && (
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => {
-                    setCodeSent(false);
-                    setCode("");
-                    setAuthMessage("");
-                  }}
-                >
-                  更换邮箱 / 重新发送
-                </button>
+                <div className="button-row">
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={busy}
+                    onClick={() => resetAuthChallenge()}
+                  >
+                    更换邮箱
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={busy || resendSeconds > 0}
+                    onClick={() =>
+                      void run(async () => {
+                        setAuthMessage("");
+                        await sendAuthCode();
+                      })
+                    }
+                  >
+                    {resendSeconds > 0
+                      ? `${resendSeconds} 秒后可重新发送`
+                      : "重新发送验证码"}
+                  </button>
+                </div>
               )}
             </form>
           )}
