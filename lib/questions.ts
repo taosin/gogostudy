@@ -1,5 +1,19 @@
-import type { Question } from "./catalog";
-export type GradedQuestion = Question & { answer: string; explanation: string };
+import {
+  LEGACY_CONTENT_VERSION,
+  LEGACY_PACKAGE_ID,
+  courseForPackageId,
+  coursePackageId,
+  type Course,
+  type Question,
+} from "./catalog";
+import {
+  defineQuestion,
+  type GradedQuestion,
+} from "./question-types";
+import { pepMathG2S12025Questions } from "../content/math/pep-2a-2025";
+
+export type { GradedQuestion } from "./question-types";
+
 const q = (
   id: string,
   topic: string,
@@ -8,16 +22,21 @@ const q = (
   explanation: string,
   hint: string,
   extra: Partial<Question> = {},
-): GradedQuestion => ({
-  id,
-  topic,
-  prompt,
-  answer,
-  explanation,
-  hint,
-  ...extra,
-});
-export const questions: GradedQuestion[] = [
+): GradedQuestion =>
+  defineQuestion(id, topic, prompt, answer, explanation, hint, {
+    packageId: LEGACY_PACKAGE_ID,
+    contentVersion: LEGACY_CONTENT_VERSION,
+    unitId: `legacy-unit-${topic}`,
+    skillId: `legacy-skill-${topic}`,
+    difficulty: "foundation",
+    questionType: extra.options ? "choice" : "numeric",
+    variantGroup: `legacy-${id}`,
+    author: "original",
+    reviewStatus: "reviewed",
+    ...extra,
+  });
+
+export const legacyQuestions: GradedQuestion[] = [
   q(
     "add-1",
     "addition",
@@ -276,15 +295,45 @@ export const questions: GradedQuestion[] = [
     { unit: "次" },
   ),
 ];
+
+export const questions: GradedQuestion[] = [
+  ...legacyQuestions,
+  ...pepMathG2S12025Questions,
+];
+
+const questionsById = new Map(questions.map((question) => [question.id, question]));
+
+export function findQuestion(id: string) {
+  return questionsById.get(id);
+}
+
+export function questionsForCourse(course: Course) {
+  const packageId = coursePackageId(course);
+  return questions.filter((question) => question.packageId === packageId);
+}
+
+export function questionsForPackage(packageId: string) {
+  if (!courseForPackageId(packageId)) return [];
+  return questions.filter((question) => question.packageId === packageId);
+}
+
 export function publicQuestion(q: GradedQuestion): Question {
   return {
     id: q.id,
     topic: q.topic,
     prompt: q.prompt,
-    hint: q.hint,
     ...(q.options ? { options: q.options } : {}),
     ...(q.unit ? { unit: q.unit } : {}),
     ...(q.visual ? { visual: q.visual } : {}),
+    packageId: q.packageId,
+    contentVersion: q.contentVersion,
+    unitId: q.unitId,
+    skillId: q.skillId,
+    difficulty: q.difficulty,
+    questionType: q.questionType,
+    variantGroup: q.variantGroup,
+    author: q.author,
+    reviewStatus: q.reviewStatus,
   };
 }
 export function normalizeAnswer(value: string) {

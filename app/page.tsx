@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   House,
@@ -49,12 +49,13 @@ import { Picker } from "@/components/study/course-picker";
 import { QuestionVisual } from "@/components/study/question-visual";
 import { Progress } from "@/components/ui/progress";
 import {
-  topics,
   courseKey,
   courseLabels,
   courseOptions,
   defaultCourse,
+  skillsForCourse,
   supportedCourse,
+  topicsForCourse,
   type Course,
   type Question,
   type Attempt,
@@ -63,7 +64,6 @@ import {
   getMistakes,
   stats,
   chinaDay,
-  getTodayTask,
   friendlyChinaDate,
   millisecondsUntilNextChinaDay,
   rotateForChinaDay,
@@ -72,6 +72,10 @@ import { useStudy } from "@/lib/use-study";
 import { getSupabase } from "@/lib/supabase/browser";
 import { loadQuestions, preloadQuestions } from "@/lib/question-cache";
 import { NavigationButton } from "@/components/study/navigation-button";
+import { TaskCenter } from "@/components/study/task-center";
+import { WeeklyReport } from "@/components/study/weekly-report";
+import { getDailyPlan } from "@/lib/daily-plan";
+import { getWeeklyReport } from "@/lib/weekly-report";
 type View = "home" | "practice" | "mistakes" | "review";
 const navigation = [
   { id: "home" as const, label: "学习首页", icon: House },
@@ -148,6 +152,9 @@ export default function Home() {
     [answer, setAnswer] = useState(""),
     [result, setResult] = useState<Attempt | null>(null),
     [hint, setHint] = useState(false),
+    [hintText, setHintText] = useState(""),
+    [hintReceipt, setHintReceipt] = useState<string | undefined>(),
+    [hintUsed, setHintUsed] = useState(false),
     [retryCount, setRetryCount] = useState(0),
     [showSolution, setShowSolution] = useState(false),
     [mode, setMode] = useState<Attempt["mode"]>("practice"),
@@ -199,6 +206,9 @@ export default function Home() {
       setAnswer("");
       setResult(null);
       setHint(false);
+      setHintText("");
+      setHintReceipt(undefined);
+      setHintUsed(false);
       setRetryCount(0);
       setShowSolution(false);
       setMode("practice");
@@ -215,6 +225,21 @@ export default function Home() {
   }, [ready]);
   const key = courseKey(state.course),
     available = supportedCourse(state.course);
+  const activeTopics = useMemo(
+    () => topicsForCourse(state.course),
+    [state.course],
+  );
+  const activeSkills = useMemo(
+    () => skillsForCourse(state.course),
+    [state.course],
+  );
+  const topicIdForQuestion = useCallback(
+    (question: Question) =>
+      activeTopics.some((topic) => topic.id === question.unitId)
+        ? question.unitId
+        : question.topic,
+    [activeTopics],
+  );
   useEffect(() => {
     if (!ready || loading || !available) return;
     const connection = (
@@ -255,9 +280,15 @@ export default function Home() {
     >();
     for (const attempt of attempts) {
       activityDays.add(chinaDay(attempt.created_at));
-      if (attempt.correct) correctQuestionIds.add(attempt.question_id);
-      if (attempt.mode !== "practice") continue;
-      const metric = topicPractice.get(attempt.question.topic) || {
+      if (attempt.correct && attempt.support_level === "independent")
+        correctQuestionIds.add(attempt.question_id);
+      if (
+        attempt.mode !== "practice" ||
+        attempt.support_level !== "independent"
+      )
+        continue;
+      const topicId = topicIdForQuestion(attempt.question);
+      const metric = topicPractice.get(topicId) || {
         total: 0,
         correct: 0,
         correctIds: new Set<string>(),
@@ -267,10 +298,10 @@ export default function Home() {
         metric.correct += 1;
         metric.correctIds.add(attempt.question_id);
       }
-      topicPractice.set(attempt.question.topic, metric);
+      topicPractice.set(topicId, metric);
     }
     return { activityDays, correctQuestionIds, topicPractice };
-  }, [attempts]);
+  }, [attempts, topicIdForQuestion]);
   const pending = useMemo(
       () => mistakes.filter((m) => m.status === "pending"),
       [mistakes],
@@ -284,10 +315,6 @@ export default function Home() {
             chinaDay(m.dueAt!) <= chinaDay(new Date(now)),
         ),
       [mistakes, now],
-    ),
-    todayTask = useMemo(
-      () => getTodayTask(mistakes, now),
-      [mistakes, now],
     );
   const filteredMistakes = useMemo(
     () =>
@@ -295,13 +322,34 @@ export default function Home() {
         (mistake) =>
           (filter === "all" || mistake.status === filter) &&
           (topicFilter === "全部知识点" ||
-            topics.find((topic) => topic.id === mistake.question.topic)?.name ===
-              topicFilter),
+            activeTopics.find(
+              (topic) => topic.id === topicIdForQuestion(mistake.question),
+            )?.name === topicFilter),
       ),
-    [filter, mistakes, topicFilter],
+    [activeTopics, filter, mistakes, topicFilter, topicIdForQuestion],
   );
   const dailyGoal = 5,
     dailyProgress = Math.min(summary.todayPractice, dailyGoal);
+  const dailyPlan = useMemo(
+    () =>
+      getDailyPlan(mistakes, now, {
+        practiceCount: Math.max(0, dailyGoal - dailyProgress),
+      }),
+    [dailyProgress, mistakes, now],
+  );
+  const todayTask =
+    dailyPlan.recommended === "correction"
+      ? dailyPlan.correction
+      : dailyPlan.recommended === "review"
+        ? dailyPlan.review
+        : dailyPlan.practice;
+  const weeklyReport = useMemo(
+    () =>
+      getWeeklyReport(attempts, activeSkills, {
+        now,
+      }),
+    [activeSkills, attempts, now],
+  );
   const current = queue[index];
   const solutionVisible = Boolean(
     result && (result.correct || retryCount > 0 || showSolution),
@@ -311,7 +359,21 @@ export default function Home() {
     index + (solutionVisible ? 1 : 0),
   );
   const roundCorrect = round.filter((attempt) => attempt.correct).length;
-  const firstTryCorrect = Math.max(0, round.length - sessionMistakeIds.size);
+  const firstTryCorrect = round.filter(
+    (attempt) => attempt.correct && attempt.support_level === "independent",
+  ).length;
+  const assistedCount = round.filter(
+    (attempt) => attempt.support_level !== "independent",
+  ).length;
+  const needsCorrectionCount = new Set([
+    ...sessionMistakeIds,
+    ...round
+      .filter(
+        (attempt) =>
+          !attempt.correct || attempt.support_level !== "independent",
+      )
+      .map((attempt) => attempt.question_id),
+  ]).size;
   const disabled = !ready || loading || busy || Boolean(error);
   const title = navigation.find((n) => n.id === view)!.label;
   const topbarTitle = queue.length
@@ -326,7 +388,7 @@ export default function Home() {
   const feedbackTitle = !result
     ? ""
     : result.correct
-      ? retryCount > 0 || hint
+      ? retryCount > 0 || hintUsed
         ? "你顺着提示想出来了！"
         : mode === "correction"
           ? "订正完成，方法更清楚了！"
@@ -356,7 +418,7 @@ export default function Home() {
             : "数学小探险，",
     todayDescription =
       todayTask.kind === "correction"
-        ? "订正完成后，系统会安排间隔复习。"
+        ? "独立订正完成后，系统会安排间隔复习。"
         : todayTask.kind === "review"
           ? "按时回忆，比连续重复更容易记牢。"
           : dailyProgress >= dailyGoal
@@ -424,6 +486,7 @@ export default function Home() {
     topic?: string,
     ids?: string[],
     nextMode: Attempt["mode"] = "practice",
+    limit = 5,
   ) {
     if (disabled || !available) return;
     await run(async () => {
@@ -439,7 +502,7 @@ export default function Home() {
             .filter((q): q is Question => !!q)
         : questions.filter(
             (q) =>
-              (!topic || q.topic === topic) &&
+              (!topic || topicIdForQuestion(q) === topic) &&
               !unresolvedMistakeIds.has(q.id),
           );
       if (!ids) {
@@ -450,13 +513,16 @@ export default function Home() {
         );
         if (!topic) {
           const chosen: Question[] = [];
-          for (const t of rotateForChinaDay(topics, new Date())) {
-            const q = selected.find((q) => q.topic === t.id);
+          for (const t of rotateForChinaDay(
+            activeTopics,
+            new Date(now || Date.now()),
+          )) {
+            const q = selected.find((q) => topicIdForQuestion(q) === t.id);
             if (q) chosen.push(q);
           }
           selected = chosen;
         }
-        selected = selected.slice(0, 5);
+        selected = selected.slice(0, limit);
       }
       if (!selected.length)
         throw new Error(
@@ -471,6 +537,9 @@ export default function Home() {
       setAnswer("");
       setResult(null);
       setHint(false);
+      setHintText("");
+      setHintReceipt(undefined);
+      setHintUsed(false);
       setRetryCount(0);
       setShowSolution(false);
       setMode(nextMode);
@@ -488,37 +557,84 @@ export default function Home() {
     if (todayTask.kind === "review")
       return void start(undefined, todayTask.ids, "review");
     if (dailyProgress >= dailyGoal) return navigate("review");
-    return void start();
+    return void start(
+      undefined,
+      undefined,
+      "practice",
+      dailyPlan.practice.count,
+    );
+  }
+  async function revealHint(forAttemptId = attemptId.current) {
+    if (!current) return;
+    const revealed = await study.requestHint({
+      attemptId: forAttemptId,
+      questionId: current.id,
+    });
+    setHintText(revealed.hint);
+    setHintReceipt(revealed.hintReceipt);
+    setHintUsed(true);
+    setHint(true);
   }
   async function submit() {
     if (!current || result || !answer.trim() || disabled) return;
     await run(async () => {
+      const latestWorkflowAttempt = attempts
+        .filter((item) => item.question_id === current.id)
+        .sort(
+          (left, right) =>
+            Date.parse(left.created_at) - Date.parse(right.created_at) ||
+            left.id.localeCompare(right.id),
+        )
+        .at(-1);
+      let activeHintReceipt = hintReceipt;
+      if (hintUsed) {
+        const refreshedHint = await study.requestHint({
+          attemptId: attemptId.current,
+          questionId: current.id,
+        });
+        activeHintReceipt = refreshedHint.hintReceipt;
+        setHintText(refreshedHint.hint);
+        setHintReceipt(refreshedHint.hintReceipt);
+      }
       const attempt = await study.saveAttempt({
         id: attemptId.current,
         questionId: current.id,
         answer,
-        mode: retryCount > 0 ? "correction" : mode,
+        mode,
+        workflowVersion:
+          mode === "practice" ? undefined : latestWorkflowAttempt?.id || null,
+        hintReceipt: activeHintReceipt,
         reason,
       });
-      if (!attempt.correct) {
-        setHint(true);
-        setSessionMistakeIds((ids) => new Set(ids).add(current.id));
-      }
       setResult(attempt);
       setRound((items) => [
         ...items.filter((item) => item.question_id !== attempt.question_id),
         attempt,
       ]);
+      if (!attempt.correct) {
+        setSessionMistakeIds((ids) => new Set(ids).add(current.id));
+        if (retryCount === 0) {
+          const retryAttemptId = crypto.randomUUID();
+          attemptId.current = retryAttemptId;
+          setHintText("");
+          setHintReceipt(undefined);
+          await revealHint(retryAttemptId);
+        }
+      }
     });
   }
-  function retryCurrent() {
+  async function retryCurrent() {
     if (!result || result.correct || retryCount > 0) return;
-    setRetryCount(1);
-    setShowSolution(false);
-    setResult(null);
-    setAnswer("");
-    setHint(true);
-    attemptId.current = crypto.randomUUID();
+    await run(async () => {
+      if (!hintText) await revealHint(attemptId.current);
+      setRetryCount(1);
+      setShowSolution(false);
+      setResult(null);
+      setAnswer("");
+      setHint(true);
+      setHintUsed(true);
+      if (mode === "review") setMode("correction");
+    });
   }
   function next() {
     if (index + 1 >= queue.length) {
@@ -538,6 +654,9 @@ export default function Home() {
     setAnswer("");
     setResult(null);
     setHint(false);
+    setHintText("");
+    setHintReceipt(undefined);
+    setHintUsed(false);
     setRetryCount(0);
     setShowSolution(false);
     setReason("");
@@ -625,7 +744,7 @@ export default function Home() {
   }
   const topicCards = (all: boolean) => (
     <div className="topic-grid">
-      {(all ? topics : topics.slice(0, 4)).map((t) => {
+      {(all ? activeTopics : activeTopics.slice(0, 4)).map((t) => {
         const Icon = topicIcons[t.icon as keyof typeof topicIcons];
         const answered =
           attemptMetrics.topicPractice.get(t.id)?.correctIds.size || 0;
@@ -773,7 +892,9 @@ export default function Home() {
                   <h1 ref={viewHeadingRef} tabIndex={-1}>
                     {round.some((attempt) => !attempt.correct)
                       ? "完成这一轮，就是进步！"
-                      : sessionMistakeIds.size
+                      : assistedCount
+                        ? "借助提示想明白了，下次再独立订正！"
+                      : needsCorrectionCount
                         ? "愿意再想一次，真了不起！"
                         : "这轮思路很清楚！"}
                   </h1>
@@ -784,27 +905,31 @@ export default function Home() {
                     </div>
                     <div>
                       <strong>{firstTryCorrect}</strong>
-                      <span>一次答对</span>
+                      <span>独立答对</span>
                     </div>
                     <div>
-                      <strong>{sessionMistakeIds.size}</strong>
+                      <strong>{needsCorrectionCount}</strong>
                       <span>认真再想</span>
                     </div>
                   </div>
                   <div className="completion-topics">
-                    {[...new Set(round.map((attempt) => attempt.question.topic))].map(
-                      (topic) => (
-                        <span className="pill" key={topic}>
-                          {topics.find((item) => item.id === topic)?.name}
-                        </span>
+                    {[
+                      ...new Set(
+                        round.map((attempt) =>
+                          topicIdForQuestion(attempt.question),
+                        ),
                       ),
-                    )}
+                    ].map((topic) => (
+                        <span className="pill" key={topic}>
+                          {activeTopics.find((item) => item.id === topic)?.name}
+                        </span>
+                      ))}
                   </div>
                   <div className="completion-note">
                     {roundCorrect < round.length
                       ? `${round.length - roundCorrect} 道题还可以再想一次，已经放进错题本。`
-                      : sessionMistakeIds.size
-                        ? `${sessionMistakeIds.size} 道题借助提示想明白了，明天会安排回忆。`
+                      : assistedCount
+                        ? `${assistedCount} 道题借助提示想明白了，会留在错题本等你下次独立订正。`
                       : mode === "correction"
                         ? "订正完成，明天会安排第 1 次回忆。"
                         : mode === "review"
@@ -868,7 +993,11 @@ export default function Home() {
                   <div className="question-panel panel">
                     <div className="question-meta">
                       <span className="pill">
-                        {topics.find((t) => t.id === current.topic)?.name}
+                        {
+                          activeTopics.find(
+                            (t) => t.id === topicIdForQuestion(current),
+                          )?.name
+                        }
                       </span>
                       <span>{current.options ? "选一选" : "填一填"}</span>
                     </div>
@@ -952,8 +1081,10 @@ export default function Home() {
                             "先试着订正",
                             "计算时出错",
                             "题目没读清",
+                            "口诀还没想起",
+                            "分类标准混淆",
+                            "单位或测量弄混",
                             "方法还不熟",
-                            "单位或时间弄混",
                           ]}
                           onChange={(v) =>
                             setReason(v === "先试着订正" ? "" : v)
@@ -967,7 +1098,11 @@ export default function Home() {
                             className="text-button hint-button"
                             aria-expanded={hint}
                             aria-controls="question-hint"
-                            onClick={() => setHint(!hint)}
+                            disabled={busy}
+                            onClick={() => {
+                              if (hint) setHint(false);
+                              else void run(() => revealHint());
+                            }}
                           >
                             <Lightbulb size={18} />{" "}
                             {hint ? "收起小提示" : "给我一点提示"}
@@ -989,10 +1124,10 @@ export default function Home() {
                         )}
                       </div>
                     </form>
-                    {hint && (
+                    {hint && hintText && (
                       <p className="hint-box" id="question-hint" role="status">
                         <Lightbulb size={17} />
-                        <span>{current.hint}</span>
+                        <span>{hintText}</span>
                       </p>
                     )}
                     {result && (
@@ -1025,8 +1160,11 @@ export default function Home() {
                           <small>使用提示不会扣分，慢慢想就好。</small>
                         ) : !result.correct ? (
                           <small>已放进错题本，之后可以再自己做一次。</small>
-                        ) : retryCount > 0 ? (
-                          <small>这次当场订正完成，明天会再安排一次回忆。</small>
+                        ) : hintUsed ||
+                          result.support_level !== "independent" ? (
+                          <small>
+                            借助提示想明白了，会留在错题本，之后再独立订正一次。
+                          </small>
                         ) : null}
                         {!solutionVisible ? (
                           <div className="feedback-actions">
@@ -1040,7 +1178,7 @@ export default function Home() {
                             <button
                               className="primary"
                               type="button"
-                              onClick={retryCurrent}
+                              onClick={() => void retryCurrent()}
                             >
                               用提示再试一次 <RotateCcw size={17} />
                             </button>
@@ -1111,6 +1249,7 @@ export default function Home() {
                   {state.course.semester}
                 </b>
                 <b>{state.course.subject}</b>
+                <b>{state.course.revision}</b>
                 <span className="muted">
                   切换课程 <ChevronRight size={14} />
                 </span>
@@ -1132,6 +1271,7 @@ export default function Home() {
                     onClick={() =>
                       void run(async () => {
                         await study.saveCourse(defaultCourse);
+                        setTopicFilter("全部知识点");
                       })
                     }
                   >
@@ -1142,6 +1282,26 @@ export default function Home() {
                 <>
                   {view === "home" && (
                     <>
+                      <div className="task-center-home">
+                        <TaskCenter
+                          plan={dailyPlan}
+                          disabled={disabled}
+                          onStartCorrection={(ids) =>
+                            void start(undefined, ids, "correction")
+                          }
+                          onStartReview={(ids) =>
+                            void start(undefined, ids, "review")
+                          }
+                          onStartPractice={() =>
+                            void start(
+                              undefined,
+                              undefined,
+                              "practice",
+                              dailyPlan.practice.count,
+                            )
+                          }
+                        />
+                      </div>
                       <div className="dashboard-grid">
                         <section className="hero-card">
                           <div className="pill">
@@ -1373,7 +1533,10 @@ export default function Home() {
                         <Picker
                           label="知识点"
                           value={topicFilter}
-                          values={["全部知识点", ...topics.map((t) => t.name)]}
+                          values={[
+                            "全部知识点",
+                            ...activeTopics.map((t) => t.name),
+                          ]}
                           onChange={setTopicFilter}
                         />
                       </div>
@@ -1391,8 +1554,9 @@ export default function Home() {
                               <div className="section-heading">
                                 <span className="pill">
                                   {
-                                    topics.find(
-                                      (t) => t.id === m.question.topic,
+                                    activeTopics.find(
+                                      (t) =>
+                                        t.id === topicIdForQuestion(m.question),
                                     )?.name
                                   }
                                 </span>
@@ -1406,8 +1570,10 @@ export default function Home() {
                               </div>
                               <h3>{m.question.prompt}</h3>
                               <p className="muted">
-                                上次作答：{m.last.answer} · 累计做错{" "}
-                                {m.wrongCount} 次
+                                上次作答：{m.last.answer} ·{" "}
+                                {m.wrongCount === 0
+                                  ? "看过提示，等待独立订正"
+                                  : `累计做错 ${m.wrongCount} 次`}
                               </p>
                               {m.last.reason && (
                                 <p className="muted">
@@ -1507,23 +1673,26 @@ export default function Home() {
                           <span className="green-text">
                             {summary.practice ? summary.accuracy + "%" : "—"}
                           </span>
-                          <p>第一次作答正确率</p>
+                          <p>独立练习正确率</p>
                         </div>
                         <div className="mini-stat">
                           <span className="orange">{summary.days}</span>
                           <p>累计学习天数</p>
                         </div>
                       </div>
+                      <div className="weekly-report-wrap">
+                        <WeeklyReport report={weeklyReport} />
+                      </div>
                       <div className="review-grid">
                         <section className="panel review-panel">
                           <div className="section-heading">
-                            <h2>第一次练习情况</h2>
+                            <h2>独立练习情况</h2>
                             <ChartNoAxesCombined size={21} />
                           </div>
                           <p className="muted">
-                            只统计第一次作答，订正和复习会在错题本里继续成长。
+                            正确率只统计独立练习，提示和引导不会影响结果。
                           </p>
-                          {topics.map((t) => {
+                          {activeTopics.map((t) => {
                             const metric = attemptMetrics.topicPractice.get(t.id);
                             const pct = metric?.total
                               ? Math.round((metric.correct / metric.total) * 100)
@@ -1540,7 +1709,7 @@ export default function Home() {
                                 </div>
                                 <Progress
                                   value={pct}
-                                  aria-label={`${t.name}第一次作答正确率 ${metric?.total ? `${metric.correct}/${metric.total} 题，${pct}%` : "还没练习"}`}
+                                  aria-label={`${t.name}独立练习正确率 ${metric?.total ? `${metric.correct}/${metric.total} 题，${pct}%` : "还没练习"}`}
                                 />
                               </div>
                             );
@@ -1570,9 +1739,9 @@ export default function Home() {
                               onClick={() =>
                                 void start(
                                   undefined,
-                                  (pending.length ? pending : due)
-                                    .slice(0, 5)
-                                    .map((m) => m.question.id),
+                                  pending.length
+                                    ? dailyPlan.correction.ids
+                                    : dailyPlan.review.ids,
                                   pending.length ? "correction" : "review",
                                 )
                               }
@@ -1813,6 +1982,7 @@ export default function Home() {
                 setSettings(false);
                 setQueue([]);
                 setView("home");
+                setTopicFilter("全部知识点");
                 setSuccess("课程已保存。");
               })
             }

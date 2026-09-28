@@ -30,7 +30,9 @@ function addDays(value: string, days: number) {
   return new Date(Date.parse(value) + days * DAY_MS).toISOString();
 }
 
-// A correction starts the review cycle. Only due reviews advance 1 / 3 / 7.
+// Any answer that needed support returns to pending correction. An independent
+// correction starts the review cycle, and only independent due reviews advance
+// 1 / 3 / 7.
 export function getMistakes(attempts: Attempt[]): Mistake[] {
   const grouped = new Map<string, Attempt[]>();
   for (const a of attempts) {
@@ -42,23 +44,30 @@ export function getMistakes(attempts: Attempt[]): Mistake[] {
   return [...grouped.values()]
     .flatMap((list) => {
       list.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
-      const firstWrong = list.find((a) => !a.correct);
+      const firstWrong = list.find(
+        (a) => !a.correct || a.support_level !== "independent",
+      );
       if (!firstWrong) return [];
       let status: Mistake["status"] = "pending",
         dueAt: string | null = null,
         reviewStep = 0;
       for (const a of list.slice(list.indexOf(firstWrong))) {
-        if (!a.correct) {
+        if (!a.correct || a.support_level !== "independent") {
           status = "pending";
           dueAt = null;
           reviewStep = 0;
-        } else if (status === "pending" && a.mode === "correction") {
+        } else if (
+          status === "pending" &&
+          a.mode === "correction" &&
+          a.support_level === "independent"
+        ) {
           status = "review";
           reviewStep = 0;
           dueAt = addDays(a.created_at, REVIEW_INTERVAL_DAYS[0]);
         } else if (
           status === "review" &&
           a.mode === "review" &&
+          a.support_level === "independent" &&
           dueAt &&
           chinaDay(a.created_at) >= chinaDay(dueAt)
         ) {
@@ -111,6 +120,7 @@ export function stats(attempts: Attempt[], now: Date | string = new Date()) {
   const todayKey = chinaDay(current);
   const activeDays = new Set<string>();
   const uniquePractice = new Set<string>();
+  const todayPracticeIds = new Set<string>();
   let practice = 0,
     correct = 0,
     today = 0,
@@ -120,11 +130,13 @@ export function stats(attempts: Attempt[], now: Date | string = new Date()) {
     activeDays.add(day);
     if (day === todayKey) today += 1;
     if (attempt.mode !== "practice") continue;
-    practice += 1;
     uniquePractice.add(attempt.question_id);
+    if (day === todayKey) todayPracticeIds.add(attempt.question_id);
+    if (attempt.support_level !== "independent") continue;
+    practice += 1;
     if (attempt.correct) correct += 1;
-    if (day === todayKey) todayPractice += 1;
   }
+  todayPractice = todayPracticeIds.size;
   let streak = 0;
   const start = activeDays.has(todayKey) ? 0 : 1;
   for (let offset = start; ; offset += 1) {

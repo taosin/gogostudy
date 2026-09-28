@@ -300,6 +300,10 @@ h1 {
   grid-template-columns: 1.65fr 1fr;
   gap: 24px;
 }
+.task-center-home,
+.weekly-report-wrap {
+  margin-bottom: 24px;
+}
 .hero-card {
   background: #eaf2ff;
   border: 1px solid #dfeaff;
@@ -1258,6 +1262,111 @@ input:focus {
   max-width: 100%;
   display: block;
   margin: 0 auto 30px;
+}
+.classification-visual {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 14px;
+  max-width: 620px;
+  margin: 24px auto 34px;
+}
+.classification-visual section {
+  padding: 14px;
+  border: 2px solid #dfeaf9;
+  border-radius: 15px;
+  background: #f8fbff;
+}
+.classification-visual strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #486789;
+  font-size: 14px;
+}
+.classification-visual section > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.classification-visual span {
+  display: grid;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 7px 10px;
+  place-items: center;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 1px 0 #dce7f5;
+  color: #344f70;
+  font-size: 15px;
+}
+.ruler-visual {
+  width: min(620px, 100%);
+  margin: 30px auto 40px;
+  padding: 28px 26px 20px;
+  border: 2px solid #f0d58e;
+  border-radius: 16px;
+  background: #fffaf0;
+  color: #735d2a;
+}
+.ruler-object {
+  display: grid;
+  grid-template-columns: 4px 1fr 4px;
+  align-items: center;
+  height: 26px;
+  margin: 0 1px 14px;
+}
+.ruler-object i {
+  height: 26px;
+  border-radius: 4px;
+  background: #367be8;
+}
+.ruler-object span {
+  height: 12px;
+  background: #8ab5f5;
+}
+.ruler-track {
+  display: flex;
+  height: 50px;
+  border-top: 4px solid #d6a845;
+}
+.ruler-tick {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 22px;
+}
+.ruler-tick:last-child {
+  flex: 0 0 1px;
+}
+.ruler-tick > i {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 2px;
+  height: 18px;
+  background: #a77c23;
+}
+.ruler-tick > b {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 650;
+}
+.ruler-tick > em {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  background: #caa44f;
+}
+.ruler-visual > small {
+  display: block;
+  margin-top: 2px;
+  text-align: right;
+  color: #9b7b36;
+  font-size: 12px;
 }
 .completion {
   padding: 50px 25px;

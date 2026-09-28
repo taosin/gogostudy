@@ -1,5 +1,5 @@
-import { questions, publicQuestion } from "@/lib/questions";
-import { defaultCourse, courseKey, topics } from "@/lib/catalog";
+import { publicQuestion, questionsForCourse } from "@/lib/questions";
+import { courseFromKey, coursePackageId } from "@/lib/catalog";
 import {
   NO_STORE_HEADERS,
   PUBLIC_QUESTION_CACHE_HEADERS,
@@ -17,17 +17,30 @@ export async function GET(request: Request) {
     );
 
   const key = url.searchParams.get("course");
-  if (url.searchParams.has("course") && key !== courseKey(defaultCourse))
+  if (!key)
+    return Response.json(
+      { error: "请先选择课程版本。" },
+      { status: 400, headers: NO_STORE_HEADERS },
+    );
+  const course = courseFromKey(key);
+  if (!course)
     return Response.json(
       { questions: [] },
       { headers: NO_STORE_HEADERS },
     );
+  const packageQuestions = questionsForCourse(course);
   const topic = url.searchParams.get("topic");
-  if (url.searchParams.has("topic") && !topics.some((item) => item.id === topic))
+  if (
+    url.searchParams.has("topic") &&
+    (!topic ||
+      !packageQuestions.some((question) => question.topic === topic))
+  )
     return Response.json({ questions: [] }, { headers: NO_STORE_HEADERS });
   return Response.json(
     {
-      questions: questions
+      packageId: coursePackageId(course),
+      contentVersion: packageQuestions[0]?.contentVersion || null,
+      questions: packageQuestions
         .filter((q) => !topic || q.topic === topic)
         .map(publicQuestion),
     },

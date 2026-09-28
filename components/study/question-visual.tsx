@@ -1,4 +1,5 @@
 import type { Question } from "@/lib/catalog";
+
 export function QuestionVisual({ question }: { question: Question }) {
   const v = question.visual;
   if (!v) return null;
@@ -17,6 +18,71 @@ export function QuestionVisual({ question }: { question: Question }) {
         ))}
       </div>
     );
+
+  if (v.type === "classification") {
+    const categories = [...new Set(v.items.map((item) => item.category))];
+    return (
+      <div
+        className="classification-visual"
+        role="img"
+        aria-label={categories
+          .map(
+            (category) =>
+              `${category}：${v.items
+                .filter((item) => item.category === category)
+                .map((item) => item.label)
+                .join("、")}`,
+          )
+          .join("；")}
+      >
+        {categories.map((category) => (
+          <section key={category}>
+            <strong>{category}</strong>
+            <div>
+              {v.items
+                .filter((item) => item.category === category)
+                .map((item, index) => (
+                  <span key={`${item.label}-${index}`}>{item.label}</span>
+                ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
+  if (v.type === "ruler") {
+    const first = Math.min(v.start, v.end);
+    const last = Math.max(v.start, v.end);
+    const span = Math.max(1, last - first);
+    const ticks = Array.from({ length: span + 1 }, (_, index) => first + index);
+    return (
+      <div
+        className="ruler-visual"
+        role="img"
+        aria-label={`物体左端在 ${v.start} 厘米，右端在 ${v.end} 厘米`}
+      >
+        <div className="ruler-object" aria-hidden="true">
+          <i />
+          <span />
+          <i />
+        </div>
+        <div className="ruler-track" aria-hidden="true">
+          {ticks.map((tick, index) => (
+            <span key={tick} className="ruler-tick">
+              <i />
+              <b>{tick}</b>
+              {index < ticks.length - 1 && <em />}
+            </span>
+          ))}
+        </div>
+        <small>厘米</small>
+      </div>
+    );
+  }
+
+  if (v.type !== "clock") return null;
+
   return (
     <svg
       className="clock-face"
