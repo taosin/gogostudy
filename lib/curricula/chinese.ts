@@ -1,0 +1,227 @@
+import { defineLesson, type SubjectCurriculum } from "../learning-types";
+
+export const chineseCurriculum: SubjectCurriculum = {
+  id: "chinese",
+  title: "语文",
+  tagline: "听清一句话，读懂一个故事，把自己的发现说清楚。",
+  description: "从声音、字词到阅读与表达的首批 12 个核心概念；用生活情境认识语言怎样传递意思。",
+  stages: [
+    { id: "chinese-listen-stage", title: "听见与分辨", subtitle: "留意话里的信息和声音变化。" },
+    { id: "chinese-symbol-stage", title: "认识字音与字形", subtitle: "让声音与文字建立联系。" },
+    { id: "chinese-sentence-stage", title: "词语连成句子", subtitle: "用合适的词表达完整意思。" },
+    { id: "chinese-reading-stage", title: "从句子读到经过", subtitle: "找证据，理清发生了什么。" },
+    { id: "chinese-writing-stage", title: "把观察连成话", subtitle: "描述具体，把几句话接起来。" },
+    { id: "chinese-express-stage", title: "读出重点，讲明白", subtitle: "围绕一件事，有根据地表达。" },
+  ],
+  domains: [
+    { id: "chinese-sounds", title: "听说与字音", description: "听清信息，认识声调和拼音的作用。", color: "#ba7855" },
+    { id: "chinese-literacy", title: "字词与句子", description: "观察字形，联系情境理解词句。", color: "#a781b4" },
+    { id: "chinese-reading", title: "阅读理解", description: "从文字找依据，读清经过和重点。", color: "#528e85" },
+    { id: "chinese-expression", title: "观察与表达", description: "把观察和想法有条理地告诉别人。", color: "#9b8638" },
+  ],
+  sources: [
+    { title: "教育部：义务教育课程方案和课程标准（2022 年版，含语文课程标准）", url: "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/t20220420_619921.html" },
+    { title: "教育部：汉语拼音作为普通话与识字辅助工具的说明", url: "https://www.moe.gov.cn/jyb_xxgk/xxgk_jyta/jyta_yys/201610/t20161018_285368.html" },
+  ],
+  lessons: [
+    defineLesson({
+      id: "chinese-listen", title: "听清一句话里的小任务", domainId: "chinese-sounds", stageId: "chinese-listen-stage", prerequisites: [],
+      goal: "听或读完一句话，找出要做什么、与什么有关。",
+      why: "先听清别人传来的意思，后面才能听辨字音、读懂文字，也更容易把自己的意思说清楚。",
+      story: { title: "帮老师收一本书", text: "老师说：“请把红色的书放到桌上。”小宁先听完整句话，再想：要找哪一本？要把它放在哪里？" },
+      activity: { kind: "pairs", instruction: "读一读老师的话，把问题与话里能找到的信息配起来。也可以请家人读给你听。", pairs: [
+        { left: "要找哪本书？", right: "红色的书", explanation: "“红色的”让我们知道要找的是哪本书。" },
+        { left: "要放在哪里？", right: "桌上", explanation: "“放到桌上”告诉我们要把书放到哪里。" },
+        { left: "这是谁说的话？", right: "老师", explanation: "故事先交代了是老师提出这个小任务。" },
+      ] },
+      explanation: ["先听完整句话，别只听见“书”就马上行动。", "找出重要信息：什么东西、要做什么、放到哪里。", "不确定时可以问：“是红色的那本吗？”确认后再做，比随便猜更清楚。"],
+      takeaway: "先听完整，再抓住重要信息；没听清可以再问一次。",
+      checks: [
+        { prompt: "老师说“把红色的书放到桌上”，应该拿哪一本？", options: ["红色的书", "任意一本", "蓝色的书"], answer: 0, explanation: "“红色的”是选择书的重要信息，不能漏掉。" },
+        { prompt: "家人说“请拿两个杯子”，你没听清数量，怎样做合适？", options: ["只要拿杯子就不用管数量", "问一问：“是两个吗？”", "直接拿很多个"], answer: 1, explanation: "没有听清的信息可以再确认，确认后才知道任务要怎样完成。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-tones", title: "声调变了，意思可能不同", domainId: "chinese-sounds", stageId: "chinese-listen-stage", prerequisites: ["chinese-listen"],
+      goal: "观察 mā、má、mǎ、mà 的声调标记，发现字音的高低变化能帮助区别意思。",
+      why: "听清信息以后，再留意字音中的小差别；这些差别能用拼音的声调符号记录下来。",
+      story: { title: "小马不是妈妈", text: "“妈”和“马”听起来有相似的部分，但声调不同。妈妈的“妈”读 mā，小马的“马”读 mǎ，指的可不是同样的东西。" },
+      activity: { kind: "listen", instruction: "对照字词和声调标记观察；设备支持时可以点选听读，也可以请家人示范。朗读只是辅助，不判断你的发音。", lang: "zh-CN", items: [
+        { text: "mā · 妈", meaning: "妈妈的“妈”，第一声。", spoken: "妈" },
+        { text: "má · 麻", meaning: "麻绳的“麻”，第二声。", spoken: "麻" },
+        { text: "mǎ · 马", meaning: "小马的“马”，第三声。", spoken: "马" },
+        { text: "mà · 骂", meaning: "责骂的“骂”，第四声。", spoken: "骂" },
+      ] },
+      explanation: ["这几个字的拼音都带 m 和 a，声调标记却不同：ā、á、ǎ、à。", "普通话里这四种声调可以帮助区别字音和意思；本课先听单独读出的例子。", "不能只看字母就忽略声调。连在词句里读时，还要结合整个词和说话情境来听。"],
+      takeaway: "学字音时，把声调也一起听、一起记。",
+      checks: [
+        { prompt: "“妈 mā”和“马 mǎ”的拼音，哪部分不同？", options: ["字母 m", "声调标记", "字母 a"], answer: 1, explanation: "两者都有 m 和 a，但 mā 是第一声，mǎ 是第三声。" },
+        { prompt: "卡片写着“小马 mǎ”，应该把它与哪个意思联系起来？", options: ["妈妈", "一根麻绳", "一种动物"], answer: 2, explanation: "“马 mǎ”表示动物；结合声调和词语，才能分清它与“妈 mā”。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-pinyin", title: "拼音帮我们记下字音", domainId: "chinese-sounds", stageId: "chinese-symbol-stage", prerequisites: ["chinese-tones"],
+      goal: "以 mā 为例，认识声母、韵母和声调共同提示字音。",
+      why: "声调已经能观察了，把字音的其他部分也记下来，就能借助拼音认识更多汉字。",
+      story: { title: "字卡上的小帮手", text: "字卡上写着“妈 mā”。下面的 mā 是这个字读音的小提示。在这个音节里，m 是声母，a 是韵母，a 上面标着第一声。" },
+      activity: { kind: "pairs", instruction: "把 mā 中的三个提示与各自的作用配起来；这里的例子不代表每个音节都有声母。", pairs: [
+        { left: "m", right: "这个音节的声母", explanation: "在 mā 这个音节中，m 是声母。" },
+        { left: "a", right: "这个音节的韵母", explanation: "在 mā 这个音节中，a 是韵母。" },
+        { left: "ā 上的一横", right: "第一声的声调符号", explanation: "这一横标在 a 上，提示这个音节读第一声。" },
+      ] },
+      explanation: ["在 mā 中，声母 m、韵母 a 和第一声共同提示完整的字音。", "学一个音节时要连着听、连着读，不能只把几个符号的名称逐个念一遍。", "拼音主要帮助记录读音；读懂意思还要认识汉字、词语和上下文。有些音节没有声母，例如 ài。"],
+      takeaway: "拼音是认识字音的帮手，意思还要放回字词里理解。",
+      checks: [
+        { prompt: "在 mā 这个音节中，a 是什么？", options: ["声母", "韵母", "句号"], answer: 1, explanation: "这个例子中 m 是声母，a 是韵母，a 上还带着声调标记。" },
+        { prompt: "看到不认识的汉字旁有拼音，最合适怎样用它？", options: ["只背字母，不看汉字", "借助拼音读字，再联系词句理解意思", "看到拼音就一定懂所有意思"], answer: 1, explanation: "拼音帮助读音，汉字在词句中的意思还需要结合内容来理解。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-shapes", title: "仔细看，字形里有小差别", domainId: "chinese-literacy", stageId: "chinese-symbol-stage", prerequisites: ["chinese-pinyin"],
+      goal: "观察笔画和位置，区分日、目、木、本等形近字。",
+      why: "知道怎样借助拼音读音后，还要看清字形；认准字，才能把字组成合适的词。",
+      story: { title: "找准字卡", text: "小宁发现“日”和“目”像两位亲戚，“木”和“本”也很像。多看一眼里面的横画或横画的位置，才能找准字。" },
+      activity: { kind: "pairs", instruction: "比较字形细节，把汉字与对应的观察配起来。", pairs: [
+        { left: "日", right: "外框里面有一条横画", explanation: "“日”的框里有一条横画，可在“日光”里认识它。" },
+        { left: "目", right: "外框里面有两条横画", explanation: "“目”的框里有两条横画，可在“目光”里认识它。" },
+        { left: "本", right: "比“木”多一条靠下的短横", explanation: "观察短横的位置，可以把“本”与“木”区别开。" },
+      ] },
+      explanation: ["字形相似不代表是同一个字，要看笔画数量和所在位置。", "“日”和“目”主要看框里的横画；“木”和“本”要看靠下的短横。", "把字放进熟悉的词里，如日光、目光、木头、书本，字形和意思会更容易联系起来。"],
+      takeaway: "看清细节，再放回词语里认字。",
+      checks: [
+        { prompt: "“日”和“目”怎样区分最直接？", options: ["看字是什么颜色", "看字写得多大", "看外框里面横画的数量"], answer: 2, explanation: "它们的区别在字形内部：日里面一横，目里面两横。" },
+        { prompt: "要写“书本”的“本”，只写成“木”行吗？", options: ["不行，靠下的短横不能漏", "行，只要写大一点", "行，长得像就可以"], answer: 0, explanation: "少了短横就成了另一个字，字形细节会影响表达的意思。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-words", title: "词语要放在情境里理解", domainId: "chinese-literacy", stageId: "chinese-sentence-stage", prerequisites: ["chinese-shapes"],
+      goal: "根据动作或情境选择合适的词，不只看词语是否认识。",
+      why: "认准字后，把字组成词；词与情境相合，后面连成句子才能把意思表达准确。",
+      story: { title: "小猫怎样走过来", text: "小猫慢慢地走到门口，看见熟悉的人，又快快地跑过来。“走”和“跑”都能说移动，但表达的动作不同。" },
+      activity: { kind: "sort", instruction: "根据每张卡里的动作，把它放进更合适的一类。", categories: ["走", "跑"], items: [
+        { text: "小猫一步一步慢慢来到门口。", category: 0, explanation: "慢慢迈步来到门口，用“走”与这里的动作相合。" },
+        { text: "运动员在跑道上快速奔向终点。", category: 1, explanation: "快速奔向终点，用“跑”表达这里的动作。" },
+        { text: "奶奶沿小路不紧不慢地散步。", category: 0, explanation: "散步时慢慢前进，属于这里的“走”。" },
+      ], success: "词语表达的动作要与情境相合；换一个词，画面可能就变了。" },
+      explanation: ["词语不只是一个标签，它会让别人想到动作、样子或感受。", "选择词语要看看事情实际怎样发生，如散步与奔跑的情境不同。", "同一个句子换了词，意思和画面可能改变；先理解，再使用。"],
+      takeaway: "把词语放回情境，看它是否说得准确。",
+      checks: [
+        { prompt: "“小朋友在操场上飞快地____。”哪个词更合适？", options: ["睡", "跑", "坐"], answer: 1, explanation: "“飞快地”和操场活动的情境，在这里与“跑”相合。" },
+        { prompt: "把“他慢慢走过来”改成“他飞快跑过来”，表达有没有变化？", options: ["有，动作和速度的画面变了", "没有，只要都是他就一样", "只改变了字的颜色"], answer: 0, explanation: "走和跑、慢慢和飞快传递了不同的动作信息，不能随意互换而说意思完全一样。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-sentences", title: "把谁做什么说清楚", domainId: "chinese-literacy", stageId: "chinese-sentence-stage", prerequisites: ["chinese-words", "chinese-listen"],
+      goal: "组织一个简单句，让没有看见事情的人也知道谁在做什么。",
+      why: "词语有了合适的意思，还需要按关系连起来；句子清楚了，才能阅读和表达一段完整的经过。",
+      story: { title: "告诉家人你看到什么", text: "小宁看到妹妹正在给花浇水。只说“浇水”，家人还不知道是谁；说“妹妹在给花浇水。”，这件事就更清楚了。" },
+      activity: { kind: "sequence", instruction: "按“谁—在做什么—结束标点”的顺序，把这句话连起来。", items: [
+        { id: "action", text: "在给花浇水" }, { id: "stop", text: "。" }, { id: "person", text: "妹妹" },
+      ], order: ["person", "action", "stop"], success: "妹妹在给花浇水。人物、动作和句末标点连起来，意思就完整了。" },
+      explanation: ["本课练习介绍一件新事情时，先说清是谁或什么，再说在做什么。", "句末标点帮助读者看清一句话在哪里结束；这里用句号表示一句陈述结束。", "实际交流中有时可以省去大家已经知道的内容，但向不了解情境的人介绍时，要补齐重要信息。"],
+      takeaway: "想一想听的人知道什么，把缺少的重要信息补清楚。",
+      checks: [
+        { prompt: "第一次介绍妹妹的动作，哪句话更清楚？", options: ["妹妹在给花浇水。", "浇。", "在给。"], answer: 0, explanation: "这句话说清了人物是妹妹，做的事情是给花浇水。" },
+        { prompt: "朋友没有看到操场，你说“在踢球”，怎样补充能让他知道是谁？", options: ["说“小明在踢球。”", "再说一次“踢球”", "只加一个感叹号"], answer: 0, explanation: "朋友缺少人物信息，补上“小明”就知道谁在踢球了。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-evidence", title: "答案要在文字里找依据", domainId: "chinese-reading", stageId: "chinese-reading-stage", prerequisites: ["chinese-sentences"],
+      goal: "读一个短片段，从原文找到支持答案的词句。",
+      why: "读懂一句话后，把几句话连着读；用文字中的证据回答，才能区分作者写了什么和自己的猜想。",
+      story: { title: "雨后的操场", text: "短文写道：“早上下过雨。小宁看见操场上有几个水洼，便绕着水洼走。”我们想知道：小宁为什么绕着走？" },
+      activity: { kind: "evidence", instruction: "找出能够支持“小宁为了避开水洼而绕着走”的文字线索。", passage: "早上下过雨。小宁看见操场上有几个水洼，便绕着水洼走。", clues: [
+        { text: "操场上有几个水洼", correct: true, explanation: "这直接说明路上有什么需要避开。" },
+        { text: "便绕着水洼走", correct: true, explanation: "小宁的行动围绕水洼发生，和避开它们有关。" },
+        { text: "小宁最喜欢踢足球", correct: false, explanation: "这句话没有出现在短文中，不能当作阅读依据。" },
+      ], conclusion: "原文写了水洼和绕行的动作，能支持避开水洼的理解；没有写的爱好不能自行补成事实。" },
+      explanation: ["先看问题在问什么，再返回短文寻找相关词句。", "能找到的原文信息是依据，自己想到的内容要与原文区别开。", "短文没有交代的事情，可以说“文中没有说明”，不必为了回答而猜一个。"],
+      takeaway: "先指出依据，再说自己的理解。",
+      checks: [
+        { prompt: "原文说小宁绕着什么走？", options: ["足球", "大树", "水洼"], answer: 2, explanation: "“便绕着水洼走”直接写出了答案。" },
+        { prompt: "短文只写“小猫钻进纸箱睡觉”。能确定纸箱是什么颜色吗？", options: ["不能，文字没有说明", "一定是白色", "一定是蓝色"], answer: 0, explanation: "读到了小猫的位置和动作，却没有读到颜色，不能把猜测当作原文事实。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-order", title: "先发生什么，再发生什么", domainId: "chinese-reading", stageId: "chinese-reading-stage", prerequisites: ["chinese-evidence"],
+      goal: "借助先、接着、最后等线索，理清一个过程的顺序。",
+      why: "找到具体信息后，还要看信息怎样连接；理解先后关系，才能读清故事和写清过程。",
+      story: { title: "种下一颗种子", text: "小宁先把种子放进小土坑，接着轻轻盖上土，最后浇了一点水。三步连起来，才能看清这次种植的经过。" },
+      activity: { kind: "sequence", instruction: "根据故事中这次种植的经过，把三张卡按先后排好。", items: [
+        { id: "water", text: "最后，浇一点水。" }, { id: "seed", text: "先，把种子放进小土坑。" }, { id: "cover", text: "接着，轻轻盖上土。" },
+      ], order: ["seed", "cover", "water"], success: "放种子、盖土、浇水。顺序词帮助我们跟上这次种植的经过。" },
+      explanation: ["先、接着、最后像路标，提醒读者事情的先后。", "排序既要看顺序词，也要回到故事，确认动作的关系。", "这里整理的是短文中这一次的过程，不代表所有事情都只能按同样步骤完成。"],
+      takeaway: "顺着文字中的时间线索，把经过连成一条线。",
+      checks: [
+        { prompt: "在这篇种植小故事中，盖土以后做什么？", options: ["浇一点水", "先挖出种子", "重新放种子"], answer: 0, explanation: "短文说接着盖土，最后浇水，所以盖土以后是浇水。" },
+        { prompt: "故事写“先穿鞋，接着拿伞，最后出门”，哪一步排第二？", options: ["穿鞋", "出门", "拿伞"], answer: 2, explanation: "“接着”引出的拿伞在穿鞋之后、出门之前，是第二步。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-describe", title: "把观察到的样子说具体", domainId: "chinese-expression", stageId: "chinese-writing-stage", prerequisites: ["chinese-words", "chinese-evidence"],
+      goal: "选择能观察到的细节描述物品，区分观察与想象。",
+      why: "阅读时要找依据，表达时也要有依据；具体而真实的细节，能让听的人在脑中形成画面。",
+      story: { title: "一片落叶", text: "小宁观察一片叶子：它是黄色的，边缘有一个小缺口。小宁觉得它像一只小船，这个“像”表达的是自己的联想。" },
+      activity: { kind: "sort", instruction: "把直接观察到的细节与由细节想到的画面分开。两种都可以表达，但要说清。", categories: ["观察到的细节", "产生的联想"], items: [
+        { text: "叶子是黄色的。", category: 0, explanation: "颜色是故事明确观察到的细节。" },
+        { text: "叶子边缘有一个小缺口。", category: 0, explanation: "边缘的缺口可以直接观察。" },
+        { text: "叶子像一只小船。", category: 1, explanation: "“像”把叶子的样子与小船联系起来，是联想，不是说它真的成了船。" },
+      ], success: "真实细节让描述具体，明确的“像”字可以帮助表达自己的联想。" },
+      explanation: ["比起只说“很好看”，颜色、形状、动作等细节更能让人想象画面。", "观察是什么样，就先说什么样，不把没看到的内容说成看到的事实。", "也可以加入自己的联想，用“像”“我觉得”等表达让别人知道那是你的想法。"],
+      takeaway: "先把细节看清，再把观察和联想说清。",
+      checks: [
+        { prompt: "哪句话提供了可以直接观察的具体细节？", options: ["叶子想回家", "这片叶子最好看", "叶子边缘有一个小缺口"], answer: 2, explanation: "边缘上的缺口是具体、可观察的细节；另外两句分别是评价或想象。" },
+        { prompt: "云的形状让你想到小兔子，怎样表达更准确？", options: ["天上一定住着真兔子", "这朵云像一只小兔子", "云就是兔子变的"], answer: 1, explanation: "用“像”说明这是形状引发的联想，而不是把想象说成事实。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-paragraph", title: "让几句话围着一件事", domainId: "chinese-expression", stageId: "chinese-writing-stage", prerequisites: ["chinese-sentences", "chinese-order", "chinese-describe"],
+      goal: "围绕一件事，把开头、经过和结果连成一个短段落。",
+      why: "一句话和一个细节已经能说清，再把相关句子按顺序组织起来，就能讲述一段经过。",
+      story: { title: "修好一页书", text: "小宁发现绘本有一页裂开了。她请老师帮忙，用透明胶带把裂口贴好。修好后，小宁把书放回书架。" },
+      activity: { kind: "sequence", instruction: "按发现问题、处理问题、处理后的结果，把句子连成一段。", items: [
+        { id: "result", text: "修好后，小宁把书放回书架。" }, { id: "repair", text: "她请老师帮忙，把裂口贴好。" }, { id: "find", text: "小宁发现绘本的一页裂开了。" },
+      ], order: ["find", "repair", "result"], success: "三句话围绕修书这件事，从发现到处理再到结果，读者容易跟上。" },
+      explanation: ["先确定这一段主要要讲什么，本课讲的是修书。", "把相关句子按事情发生的顺序排列，让前后能接上。", "与这件事无关的信息不必硬放进来；需要换话题时，要让读者知道转到了另一件事。"],
+      takeaway: "一段话围绕一件事，前后相接，听的人才容易明白。",
+      checks: [
+        { prompt: "讲“发现书破了—把书修好—放回书架”，哪句最适合开头？", options: ["小宁发现绘本的一页裂开了。", "修好后把书放回书架。", "今天的午饭是面条。"], answer: 0, explanation: "先交代为什么要修书，后面的处理和结果才有来由。" },
+        { prompt: "写自己浇花的经过，哪句与主要内容最不相关？", options: ["弟弟喜欢蓝色书包。", "我先拿来小水壶。", "我把水慢慢浇进花盆。"], answer: 0, explanation: "弟弟喜欢什么颜色的书包没有说明浇花这件事，可以另找合适的地方表达。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-main-idea", title: "许多细节共同在说什么", domainId: "chinese-reading", stageId: "chinese-express-stage", prerequisites: ["chinese-evidence", "chinese-paragraph"],
+      goal: "把相关细节放在一起，概括短文主要写的一件事。",
+      why: "会找细节和连句子之后，可以反过来看这些细节共同指向什么，为介绍一篇短文抓住重点。",
+      story: { title: "整理图书角", text: "小宁把绘本放到左边，小乐把故事书放到右边。大家把歪倒的书扶正，又在书架上贴好分类标签。" },
+      activity: { kind: "evidence", instruction: "找出支持“大家在整理图书角”这个概括的线索。", passage: "小宁把绘本放到左边，小乐把故事书放到右边。大家把歪倒的书扶正，又在书架上贴好分类标签。", clues: [
+        { text: "把绘本和故事书分别放好", correct: true, explanation: "给书分类摆放属于整理图书角的行动。" },
+        { text: "扶正歪倒的书，贴分类标签", correct: true, explanation: "这些动作也围绕把图书角整理好。" },
+        { text: "大家正在操场上踢球", correct: false, explanation: "短文没有写踢球，这与这些整理动作不相符。" },
+      ], conclusion: "分类、摆正、贴标签都是整理图书角的细节，合起来可以概括主要事情。" },
+      explanation: ["先找人物做了哪些事，再看这些事有没有共同指向。", "概括主要内容要能包括关键细节，不只抓住最喜欢的一句话。", "给这段话起题目时，“整理图书角”比“左边的绘本”更能覆盖整段内容。"],
+      takeaway: "把细节放在一起，找出它们共同说明的事情。",
+      checks: [
+        { prompt: "给整理书、扶正书、贴标签这段话起题目，哪个最合适？", options: ["整理图书角", "一张午餐菜单", "操场上的比赛"], answer: 0, explanation: "三个主要动作都围绕整理图书角，这个题目能覆盖整段内容。" },
+        { prompt: "短文写擦桌子、扫地、倒垃圾，主要在讲什么？", options: ["大家正在做午饭", "大家在打扫卫生", "大家只是在看桌子"], answer: 1, explanation: "把这几个动作联系起来，它们都属于打扫卫生，而不只是其中的一个小动作。" },
+      ],
+    }),
+    defineLesson({
+      id: "chinese-express", title: "让没在现场的人也听明白", domainId: "chinese-expression", stageId: "chinese-express-stage", prerequisites: ["chinese-main-idea", "chinese-paragraph", "chinese-listen"],
+      goal: "围绕一件事，交代人物、主要经过和结果，再检查别人能否听懂。",
+      why: "把听说、字词、阅读和组织句子连起来，就能把自己的经历清楚地传递给别人。",
+      story: { title: "讲给家人听", text: "放学后，小宁想讲今天帮同学找水壶的事。家人没有在现场，她先说明谁遇到什么问题，再讲怎样找到，最后说结果。" },
+      activity: { kind: "sequence", instruction: "为了让第一次听这件事的人听明白，把这段讲述按经过排好。", items: [
+        { id: "found", text: "最后，我们在操场长椅旁找到水壶，交还给小乐。" },
+        { id: "problem", text: "今天课间，小乐找不到自己的水壶，我和他一起找。" },
+        { id: "search", text: "我们先回教室看了看，又沿着去操场的路寻找。" },
+      ], order: ["problem", "search", "found"], success: "谁遇到问题、怎样寻找、最后结果都说清了，没在现场的人也能跟上故事。" },
+      explanation: ["先确定主要讲哪一件事，并补上听的人不知道的人物和情境。", "按顺序说主要经过，加入有用细节，最后交代结果。", "讲完可以问对方是否听明白；对方问哪里，就回到那里补充，不必把无关内容越说越多。"],
+      takeaway: "表达不是把话说得多，而是让别人理解你想说的事。",
+      checks: [
+        { prompt: "给没在现场的家人讲找水壶，哪部分应先交代？", options: ["水壶最后放哪一层柜子", "所有同学的名字", "谁遇到了什么问题"], answer: 2, explanation: "先说明小乐找不到水壶、你在帮忙，家人才知道后面的寻找为什么发生。" },
+        { prompt: "讲完后朋友问“后来找到了吗”，你最好怎样回应？", options: ["突然换一个故事", "只重复开头", "补充是否找到和最后的结果"], answer: 2, explanation: "朋友缺少的是结果，针对这个问题补充，表达就更清楚了。" },
+      ],
+    }),
+  ],
+};

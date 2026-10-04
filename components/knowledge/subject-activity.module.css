@@ -1,0 +1,71 @@
+.activity { border: 1px solid #dfe6d8; border-radius: 17px; padding: 24px; background: #fafbf5; color: #344e40; min-width: 0; }
+.instruction { font-size: 17px; line-height: 1.9; font-weight: 650; margin-bottom: 22px; }
+.activity button { min-height: 46px; border-radius: 10px; border: 1px solid #cad8c3; padding: 11px 15px; line-height: 1.7; font-size: 14px; background: #fffefb; color: #385941; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.activity button:hover:not(:disabled) { border-color: #729969; background: #f0f5e9; }
+.activity button:focus-visible { outline: 3px solid #5e8957; outline-offset: 3px; }
+.activity button:disabled { opacity: .55; cursor: not-allowed; }
+.activity button[aria-pressed="true"] { background: #e2efda; border-color: #608256; box-shadow: inset 0 0 0 1px #608256; }
+.activity button.primary { background: #346c50; border-color: #346c50; color: white; }
+.activity button.primary:hover:not(:disabled) { background: #24593e; }
+.feedback { border-radius: 11px; background: #edf3e5; padding: 15px 17px; font-size: 15px; line-height: 1.9; margin-top: 20px; color: #48613d; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.actions > span { margin-right: auto; color: #5c6c54; font-size: 13px; }
+.ordered { list-style: none; display: grid; gap: 8px; padding: 0; }
+.ordered li { min-height: 60px; border: 1px dashed #c7d5bc; border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 12px; background: #fffefb; }
+.ordered li > span { border-radius: 50%; width: 28px; height: 28px; display: grid; place-items: center; color: #566d43; background: #ecf2df; flex-shrink: 0; font-size: 13px; }
+.ordered strong { font-size: 16px; font-weight: 600; line-height: 1.8; }
+.ordered small { display: block; font-size: 13px; color: #5c6c54; line-height: 1.8; margin-top: 5px; }
+.ordered em { font-style: normal; color: #64745a; font-size: 14px; }
+.choices { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
+.pairs { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+.pairs > div { display: grid; gap: 10px; align-content: start; }
+.pairs button { width: 100%; min-height: 64px; text-align: left; font-size: 16px; }
+.pairs button svg { flex-shrink: 0; }
+.sortCard { background: #f3eddd; border: 1px solid #e1d7ba; border-radius: 14px; padding: 23px; text-align: center; margin-bottom: 20px; }
+.sortCard small { display: block; color: #6d644c; font-size: 13px; margin-bottom: 13px; }
+.sortCard strong { font-size: 22px; line-height: 1.6; }
+.categories { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(150px,100%),1fr)); gap: 12px; }
+.categories > div { padding: 12px; border: 1px solid #e0e5d7; border-radius: 12px; background: #fffefb; }
+.categories button { width: 100%; }
+.categories ul { list-style: none; padding: 0; min-height: 30px; }
+.categories li { font-size: 14px; line-height: 1.8; margin-top: 10px; padding: 8px; border-radius: 7px; background: #f0f4e9; }
+.passage { background: #fff8e6; border-left: 4px solid #b78a45; border-radius: 9px; padding: 20px; }
+.passage > span { color: #796436; font-size: 12px; }
+.passage p { font-size: 18px; line-height: 2; margin-top: 10px; white-space: pre-line; }
+.evidenceChoices { display: grid; gap: 10px; margin-top: 20px; }
+.evidenceChoices button { justify-content: flex-start; text-align: left; font-size: 15px; }
+.evidenceChoices button > span { flex-shrink: 0; width: 26px; height: 26px; display: grid; place-items: center; background: #edf3e4; border-radius: 50%; }
+.mapCaption { display: flex; gap: 15px; align-items: center; margin-bottom: 13px; }
+.mapCaption > span { font-size: 22px; white-space: nowrap; font-weight: 700; color: #42717c; }
+.mapCaption p { font-size: 12px; line-height: 1.8; color: #5a6e6a; }
+.mapBoard { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.mapBoard > div { background: #f0f3e6; border: 1px solid #d5dfc9; border-radius: 9px; min-height: 105px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; text-align: center; }
+.mapBoard strong { font-size: 17px; }
+.mapBoard span { font-size: 12px; color: #557361; }
+.mapBoard [data-target="true"] { background: #fff0d5; border-color: #bea271; }
+.mapBoard [data-current="true"] { outline: 3px solid #4c8272; outline-offset: -3px; background: #e5f0ea; }
+.directions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 17px; }
+.route { font-size: 13px; line-height: 1.8; margin-top: 15px; color: #596e59; overflow-wrap: anywhere; }
+.wordCards { display: grid; gap: 13px; }
+.wordCards > div { background: #fffefb; border: 1px solid #deded0; border-radius: 12px; padding: 20px; }
+.wordCards strong { display: block; font-size: 25px; color: #6d557f; line-height: 1.6; overflow-wrap: anywhere; }
+.wordCards p { margin: 11px 0; font-size: 15px; line-height: 1.9; color: #53684e; }
+.wordCards .hiddenMeaning { color: #6d745f; }
+.wordCards > div > div { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+.note { font-size: 12px; line-height: 1.9; color: #626e5b; margin-top: 17px; }
+.stop { margin-top: 10px; }
+@media(max-width:480px) {
+ .activity { padding: 17px 13px; }
+ .instruction { font-size: 16px; }
+ .activity button { padding: 9px 10px; }
+ .pairs { gap: 10px; }
+ .pairs button { font-size: 14px; padding: 10px 8px; }
+ .passage { padding: 17px 14px; }
+ .passage p { font-size: 16px; }
+ .feedback { padding: 13px; font-size: 14px; }
+ .mapBoard > div { min-height: 94px; padding: 10px 4px; }
+ .mapBoard strong { font-size: 14px; }
+ .mapBoard span { font-size: 12px; }
+ .directions button { font-size: 12px; gap: 5px; }
+ .wordCards > div { padding: 17px 14px; }
+}

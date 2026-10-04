@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { MathJourney } from "@/components/knowledge/math-journey";
+import { KnowledgeHub } from "@/components/knowledge/knowledge-hub";
+import { getSubjectCurriculum } from "@/lib/curricula";
+import { learningSubjects } from "@/lib/learning-subjects";
 
 export const metadata: Metadata = {
-  title: "数学成长地图 · 从基础到理解 | GoGo学堂",
-  description: "从数一数到加减乘除、分数与综合应用。沿着知识的联系，观察、动手、理解、运用，一步步建立小学数学知识体系。",
+  title: "五科知识成长地图 · 从好奇到理解 | GoGo学堂",
+  description: "数学、语文、历史、地理、英语，从基础概念出发，观察、动手、理解、运用，逐步建立孩子自己的知识体系。",
 };
-
-export default function KnowledgePage() {
-  return <MathJourney />;
+export default async function KnowledgePage() {
+  const curricula = await Promise.all(learningSubjects.map(({ id }) => getSubjectCurriculum(id)));
+  const subjects = curricula.map(({ id, title, stages, lessons }) => ({
+    id, title, stages,
+    lessons: lessons.map(({ id, title, prerequisites, checks }) => ({ id, title, prerequisites, checks: checks.map(({ id }) => ({ id })) })),
+  }));
+  return <KnowledgeHub subjects={subjects} />;
 }

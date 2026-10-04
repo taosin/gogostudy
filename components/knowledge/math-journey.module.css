@@ -8,6 +8,13 @@
 .headerTitle { color: #5a685f; font-size: 14px; border-left: 1px solid #dce3d7; padding-left: 30px; }
 .backHome { margin-left: auto; color: #5a695f; font-size: 14px; display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .main { max-width: 1240px; padding: 0 24px; margin: auto; }
+.subjectNavigation { display: flex; flex-wrap: wrap; gap: 8px; padding: 20px 0 0; }
+.subjectNavigation a { min-height: 44px; padding: 10px 20px; border: 1px solid #dce4d5; border-radius: 25px; background: #fffef9; color: #536b57; font-size: 14px; }
+.subjectNavigation a[aria-current="page"] { color: white; background: #2d6f51; border-color: #2d6f51; }
+.sources { color: #586b57; font-size: 13px; line-height: 1.9; margin: 0 0 30px; padding: 18px; border: 1px solid #dce4d5; border-radius: 12px; }
+.sources summary { cursor: pointer; min-height: 32px; font-weight: 600; }
+.sources p { margin-bottom: 10px; }
+.sources a { text-decoration: underline; text-underline-offset: 4px; }
 .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 30px; align-items: center; padding: 43px 20px 39px; }
 .eyebrow { color: #566b58; font-size: 12px; font-weight: 600; letter-spacing: 1px; display: flex; gap: 8px; align-items: center; }
 .eyebrow > span { height: 7px; width: 7px; border-radius: 50%; background: #7c9a73; }

@@ -798,7 +798,7 @@ export default function Home() {
               <SidebarMenuItem>
                 <NavigationButton asChild className="nav-button" disabled={!!queue.length && !done}>
                   <Link href="/knowledge" onClick={(event) => { if (queue.length && !done) event.preventDefault(); }} aria-disabled={!!queue.length && !done}>
-                    <Shapes size={21} /><span>数学成长地图</span>
+                    <Shapes size={21} /><span>五科成长地图</span>
                   </Link>
                 </NavigationButton>
               </SidebarMenuItem>
@@ -1292,7 +1292,7 @@ export default function Home() {
                     <>
                       <Link href="/knowledge" className="knowledge-entry">
                         <span className="knowledge-entry-icon"><Shapes size={28} /></span>
-                        <span><small>循序渐进 · 建立数学知识体系</small><strong>从数一数开始，一步步学明白</strong><em>观察、动手、理解，让每个知识连起来。</em></span>
+                        <span><small>数学 · 语文 · 历史 · 地理 · 英语</small><strong>从一个小发现，认识大大的世界</strong><em>五科知识，从基础开始，一步步连起来。</em></span>
                         <span className="knowledge-entry-action">去学习 <ArrowRight size={18} /></span>
                       </Link>
                       <div className="task-center-home">
