@@ -1,0 +1,80 @@
+.activity {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #e1e9dc;
+  border-radius: 22px;
+  background: #fbfcf6;
+  color: #345346;
+  text-align: center;
+}
+
+.instruction { margin: 0 0 20px; font-size: 17px; font-weight: 650; line-height: 1.7; }
+.result { margin: 18px 0 12px; padding: 13px 16px; border-radius: 13px; background: #eaf2e7; font-size: 15px; line-height: 1.75; text-align: left; }
+.controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin-top: 17px; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; min-width: 44px; padding: 10px 15px; border: 1px solid #c7d8c8; border-radius: 12px; background: #fff; color: #345c48; font: inherit; font-size: 14px; font-weight: 650; line-height: 1.5; cursor: pointer; touch-action: manipulation; }
+.button:hover:not(:disabled) { background: #edf4e9; border-color: #739b7c; }
+.button[aria-pressed="true"] { background: #deeddb; border-color: #50835e; }
+.button:disabled { opacity: .48; cursor: default; }
+.button:focus-visible, .counter:focus-visible, .fractionPart:focus-visible, .positionButton:focus-visible { outline: 3px solid #277154; outline-offset: 3px; }
+.countBoard { display: flex; justify-content: center; flex-wrap: wrap; gap: 13px; max-width: 340px; margin: 5px auto 20px; }
+.counter { width: 53px; height: 53px; border-radius: 50%; border: 2px solid #abc8ae; background: #e8f1d8; color: #476f52; font: inherit; font-size: 23px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+.counter[aria-pressed="true"] { background: #518362; border-color: #518362; color: #010603; }
+.emptyBasket { padding: 28px 12px; border: 2px dashed #afc9a7; border-radius: 15px; }
+.dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: 24px; }
+.smallDot { display: inline-block; width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; }
+.empty { color: #5a6a5d; font-size: 14px; line-height: 1.6; }
+.twoGroups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.basket { display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 15px; min-height: 98px; padding: 15px 12px; border: 1.5px solid #cad9c6; border-radius: 17px; background: #fff; font-size: 14px; line-height: 1.5; }
+.basket[data-muted="true"] { border-style: dashed; background: #f3f5ed; }
+.basket[data-next="true"] { border-color: #c28a45; box-shadow: 0 0 0 2px #f4e3c7; }
+.groupGrid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.groupGrid .basket { flex: 1 1 100px; max-width: 150px; min-width: 80px; }
+.removed, .remaining { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 15px 0; font-size: 14px; line-height: 1.6; }
+.removed { color: #5d685f; }
+.pairBoard { max-width: 230px; margin: auto; }
+.pairHead, .pairRow { display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; gap: 12px; }
+.pairHead { margin-bottom: 10px; font-size: 14px; }
+.pairRow { margin-top: 6px; }
+.pairDot, .missing { display: inline-flex; width: 29px; height: 29px; align-items: center; justify-content: center; justify-self: center; border-radius: 50%; color: #010603; font-size: 13px; font-weight: 700; }
+.pairLine { height: 2px; background: transparent; }
+.pairLine[data-connected="true"] { background: #8bb597; }
+.svg { display: block; width: 100%; max-width: 350px; max-height: 265px; margin: 0 auto; overflow: visible; }
+.svgText { font-family: inherit; font-size: 16px; fill: #385b46; font-weight: 650; }
+.svg text[fill="white"] { fill: #162416; }
+.svgSmall { font-family: inherit; font-size: 13px; fill: #52634f; }
+.note, .label { margin: 12px 0 0; font-size: 12px; line-height: 1.75; color: #5c695a; }
+.fractionWhole { display: grid; grid-template-columns: repeat(var(--parts), minmax(0, 1fr)); gap: 0; max-width: 350px; margin: 5px auto; border: 3px solid #588566; border-radius: 4px; overflow: hidden; }
+.fractionPart { min-height: 64px; min-width: 0; padding: 0; border: 1px solid #93b69b; background: #fffef7; color: #071b0e; font: inherit; font-size: 22px; cursor: pointer; touch-action: manipulation; }
+.fractionPart[aria-pressed="true"] { background: #5f9470; }
+.fractionPart[data-percent="true"] { aspect-ratio: 1; }
+.fractionPart:focus-visible { outline-offset: -5px; outline-color: #314b3d; }
+.hundredQuarter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); aspect-ratio: 1; width: 100%; }
+.hundredQuarter > span { border: .5px solid #9db99d; min-width: 0; }
+.fractionPart[aria-pressed="true"] .hundredQuarter > span { border-color: #d2e3cb; }
+.patternRow { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; min-height: 70px; }
+.patternItem, .patternBlank { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 40px; font-size: 32px; }
+.patternBlank { border: 2px dashed #b1c5a7; border-radius: 8px; font-size: 22px; }
+.sortingCard { display: flex; flex-direction: column; gap: 9px; font-size: 13px; line-height: 1.5; margin-bottom: 22px; }
+.sortingCard strong { display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 23px; }
+.dataColumns { display: flex; justify-content: center; gap: 12px; }
+.dataColumn { display: flex; flex: 1; min-width: 0; max-width: 120px; align-items: center; flex-direction: column; gap: 9px; }
+.dataColumn .button { width: 100%; padding: 9px 5px; overflow-wrap: anywhere; }
+.barTrack { position: relative; width: 48px; height: 128px; border-bottom: 2px solid #9bb79f; background: #eef2e7; border-radius: 6px 6px 0 0; }
+.bar { position: absolute; width: 100%; bottom: 0; border-radius: 6px 6px 0 0; }
+.barTrack > span { position: absolute; top: -23px; left: 0; right: 0; font-size: 16px; font-weight: 700; }
+.positionGrid { display: grid; grid-template-columns: repeat(3, 1fr); width: 198px; gap: 9px; margin: auto; }
+.positionButton { min-height: 60px; min-width: 44px; border: 1px dashed #c0d1b5; border-radius: 10px; background: #f5f8ed; color: #5b6954; font-size: 25px; cursor: pointer; touch-action: manipulation; }
+.positionButton[aria-pressed="true"] { background: #e5efdb; color: #38714e; border-style: solid; }
+
+@media (max-width: 440px) {
+  .activity { padding: 16px 12px; border-radius: 17px; }
+  .instruction { font-size: 16px; }
+  .countBoard { gap: 10px; }
+  .counter { width: 49px; height: 49px; }
+  .button { padding: 10px 12px; }
+  .twoGroups { gap: 8px; }
+  .basket { padding: 13px 8px; }
+  .fractionPart { min-height: 52px; }
+  .dataColumns { gap: 8px; }
+  .result { padding: 12px; }
+}

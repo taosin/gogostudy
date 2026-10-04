@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { KnowledgeExplorer } from "@/components/knowledge/knowledge-explorer";
+import { MathJourney } from "@/components/knowledge/math-journey";
 
 export const metadata: Metadata = {
-  title: "点线面体 · 小学数学知识图谱 | GoGo学堂",
-  description: "从一个点出发，动手探索线、平面图形和立体图形。12个知识点，7个互动实验，循序渐进认识空间。",
+  title: "数学成长地图 · 从基础到理解 | GoGo学堂",
+  description: "从数一数到加减乘除、分数与综合应用。沿着知识的联系，观察、动手、理解、运用，一步步建立小学数学知识体系。",
 };
 
 export default function KnowledgePage() {
-  return <KnowledgeExplorer />;
+  return <MathJourney />;
 }

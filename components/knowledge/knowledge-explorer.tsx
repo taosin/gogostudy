@@ -107,7 +107,7 @@ export function KnowledgeExplorer() {
       <a className="skip-link" href="#knowledge-main">跳到知识图谱</a>
       <header className={styles.header}>
         <Link href="/" className={styles.brand}><span><MapIcon size={23} /></span>GoGo 学堂</Link>
-        <nav aria-label="学习导航"><Link href="/"><ArrowLeft size={16} />学习首页</Link><span aria-current="page">知识图谱</span></nav>
+        <nav aria-label="学习导航"><Link href="/knowledge"><ArrowLeft size={16} />数学成长地图</Link><span aria-current="page">空间小实验</span></nav>
         <span className={styles.headerNote}>小小探索家，出发吧！</span>
       </header>
       <main id="knowledge-main" className={styles.main}>
