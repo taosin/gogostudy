@@ -1,10 +1,10 @@
 # 发布验证记录
 
-日期：2026-09-29
+应用发布验收日期：2026-09-29；云端准备状态更新：2026-10-04。以下完整自动验证和浏览器验收保留原发布结果；本次迁移文件版本对齐后，额外重跑 26 项服务端测试，全部通过。
 
 - 正式地址：[https://study.ai-builder.top](https://study.ai-builder.top)
 - 当前生产数据模式：浏览器体验模式
-- Supabase 状态：尚未创建项目、未连接、未应用迁移
+- Supabase 状态：新加坡项目 `nviiueqdafonwsztkkqh` 已创建，四份迁移已应用；生产尚未连接
 
 ## 自动验证
 
@@ -40,29 +40,47 @@
 
 - 首页静态资源和公开题库可通过 Vercel CDN 缓存；动态接口部署在新加坡 `sin1`。
 - 页面使用中国时区，中文界面和响应式布局适合国内家庭使用。
-- Vercel 与计划中的 Supabase 均不是中国大陆境内托管服务。可访问不等于稳定商用，实际延迟和可用性会受城市、运营商、DNS、跨境网络及验证码邮件供应商影响。
+- Vercel 与 Supabase 均不是中国大陆境内托管服务。可访问不等于稳定商用，实际延迟和可用性会受城市、运营商、DNS、跨境网络及验证码邮件供应商影响。
 - 面向中国大陆公开推广前，应至少在电信、联通、移动和弱网环境抽样测试，并完成备案、境内部署或 CDN、邮件/短信送达与隐私合规评估。
 
-## 尚未完成的云端验收
+## 云端准备与剩余验收
 
-Supabase 项目尚未创建，因此以下项目均不能标记为通过：
+2026-10-04 已创建 Supabase 项目 `nviiueqdafonwsztkkqh`，区域为 `ap-southeast-1`，并应用四份迁移。学习表和事务函数已就绪。Security 与 Performance Advisors 仅返回信息项：`hint_sessions` 有意不设置用户策略，以及新数据库尚未使用的 6 个索引。提示会话只允许服务端角色访问。
+
+上述提示的官方说明：[启用 RLS 但没有策略](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)、[索引尚未使用](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)。前者符合服务端专用表的访问设计；后者需积累实际访问数据后再评估。
+
+本次在真实数据库执行了单事务契约验证，全部断言通过，回滚后测试用户和测试记录均为 0：
+
+- 两个测试用户的学习表读取双向隔离。
+- 匿名角色无法读写四张表或调用两个事务函数。
+- 登录角色无法直接写表、读取提示会话或调用事务函数。
+- 服务端角色的重复提交只生成一条记录；相同 ID 携带不同内容被拒绝。
+- 独立订正后退出待订正状态，未到期复习被拒绝。
+- 查看提示后作答记为辅助完成，提示会话被消费，随后可以独立订正。
+
+服务端密钥、生产环境变量及 SMTP 尚未配置，网站继续使用浏览器体验模式。真实登录和应用 API 端到端验收尚未执行，以下项目仍待验证：
 
 - 邮箱验证码注册、登录、退出、过期验证码与发送限流
-- 两个账号的 RLS 数据隔离
+- 实际登录账号通过 Data API 读取时的数据隔离
 - 多设备同步与刷新恢复
-- 数据库迁移、Security Advisors 和 Performance Advisors
 - 生产 SMTP、Site URL 与 Vercel 环境变量
-- 在真实项目验证服务端可信写入及 `authenticated` 直接写表拒绝
+- 应用 API 身份验证、服务端可信写入及 Data API 直接写表拒绝
 - 匿名写入拒绝、直接 Data API 写入拒绝、API 写入成功与重复 UUID 幂等
 - 相同 UUID 不同负载返回 409；不同 UUID 的并发订正与复习只有一个陈旧状态请求能成功
 - 提示会话到期前刷新，提示后答对由数据库派生为辅助完成，缺少服务端提示记录时按独立完成处理
 - 两个标签页的提示会话按不同答题 ID 共存；每个用户最多保留 50 个未过期会话，超限返回 429
 
-仓库中的迁移顺序为：
+邮件配置有一项明确前置条件：自 2026-06-03 起，新免费项目使用 Supabase 默认 SMTP 时不能修改 Auth 邮件模板。当前界面要求输入验证码，因此需先配置自定义 SMTP，再将 Confirm signup 和 Magic Link 两份模板设为显示 `{{ .Token }}`。默认 SMTP 还仅向组织成员邮箱发信。[官方模板变更说明](https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier)、[官方 SMTP 文档](https://supabase.com/docs/guides/auth/auth-smtp)。
 
-1. `supabase/migrations/20260926000100_initial.sql`
-2. `supabase/migrations/20260928000100_course_packages.sql`
-3. `supabase/migrations/20260928152645_trusted_writes.sql`
-4. `supabase/migrations/20260928154656_atomic_attempt_writes.sql`
+本地文件与远程已应用迁移对应如下：
 
-第二份迁移增加课程包和内容元数据、`support_level`、约束与索引，并把旧课程设置、旧答题记录和旧学习小记映射到兼容课程包。第三份迁移撤销已登录角色的直接写权限，保留本人只读 RLS，并为服务端状态校验增加复合索引。第四份迁移增加服务端提示会话，以及仅 `service_role` 可执行的提示限额函数与原子答题函数；函数在事务中完成过期清理、限额、幂等检查、状态版本验证、工作流锁和插入。代码已将写入收口到仅服务端 secret client，但仍需在真实项目应用迁移并完成端到端权限验收。
+| 本地迁移文件 | 远程已应用版本 |
+| --- | --- |
+| `supabase/migrations/20261004131521_initial.sql` | `20261004131521` |
+| `supabase/migrations/20261004131526_course_packages.sql` | `20261004131526` |
+| `supabase/migrations/20261004131542_trusted_writes.sql` | `20261004131542` |
+| `supabase/migrations/20261004131547_atomic_attempt_writes.sql` | `20261004131547` |
+
+第二份迁移增加课程包和内容元数据、`support_level`、约束与索引，并把旧课程设置、旧答题记录和旧学习小记映射到兼容课程包。第三份迁移撤销已登录角色的直接写权限，保留本人只读 RLS，并为服务端状态校验增加复合索引。第四份迁移增加服务端提示会话，以及仅 `service_role` 可执行的提示限额函数与原子答题函数；函数在事务中完成过期清理、限额、幂等检查、状态版本验证、工作流锁和插入。迁移已应用，但仍需完成真实应用端到端权限验收。
+
+本地迁移文件名已对齐托管工具记录的远程版本，SQL 内容未变。后续使用 CLI 时先查看迁移列表和 `db push --dry-run`，确认待执行内容仅包含新增迁移。

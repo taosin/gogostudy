@@ -252,7 +252,7 @@ test("hint session quota and ID conflicts use actionable responses", async () =>
 test("atomic attempt migration locks workflows and restricts RPC execution", () => {
   const sql = readFileSync(
     new URL(
-      "../supabase/migrations/20260928154656_atomic_attempt_writes.sql",
+      "../supabase/migrations/20261004131547_atomic_attempt_writes.sql",
       import.meta.url,
     ),
     "utf8",
