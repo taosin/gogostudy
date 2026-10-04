@@ -1,0 +1,189 @@
+.playground {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #dfe8dc;
+  border-radius: 24px;
+  background: #fffdf7;
+  color: #2b493f;
+}
+
+.instruction {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.illustration,
+.pointBoard {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.pointBoard {
+  position: relative;
+  max-width: 360px;
+  aspect-ratio: 34 / 30.5;
+}
+
+.pointBoard svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.guideLine {
+  fill: none;
+  stroke: #d6e3d9;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 7;
+}
+
+.svgText,
+.svgSmallText {
+  fill: #2b493f;
+  font-family: inherit;
+  font-weight: 650;
+  font-size: 24px;
+}
+
+.svgSmallText {
+  fill: #526d61;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.dotButton {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  touch-action: manipulation;
+}
+
+.dotButton:focus-visible,
+.choiceButton:focus-visible,
+.faceButton:focus-visible {
+  outline: 3px solid #23745d;
+  outline-offset: 3px;
+}
+
+.controlRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.choiceButton,
+.faceButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 17px;
+  border: 1.5px solid #d5e1d8;
+  border-radius: 13px;
+  background: #ffffff;
+  color: #405d50;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.4;
+  touch-action: manipulation;
+}
+
+.choiceButton[aria-pressed="true"],
+.faceButton[aria-pressed="true"] {
+  border-color: #3d8066;
+  background: #e8f3eb;
+  color: #245641;
+  box-shadow: inset 0 0 0 1px #3d8066;
+}
+
+.faceControls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 390px;
+  gap: 8px;
+  margin: 0 auto 18px;
+}
+
+.faceButton {
+  gap: 6px;
+  min-width: 0;
+  padding: 9px 8px;
+  font-size: 14px;
+}
+
+.faceSwatch {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  border: 1px solid rgb(43 73 63 / 18%);
+  border-radius: 4px;
+}
+
+.observation {
+  display: block;
+  margin: 5px 0 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #eef4e8;
+  color: #3b574a;
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.observationLabel {
+  margin-right: 9px;
+  color: #316c4f;
+  font-weight: 750;
+}
+
+@media (max-width: 420px) {
+  .playground {
+    padding: 18px 12px;
+    border-radius: 18px;
+  }
+
+  .instruction {
+    font-size: 15px;
+  }
+
+  .controlRow {
+    gap: 8px;
+  }
+
+  .choiceButton {
+    padding-inline: 13px;
+    font-size: 14px;
+  }
+
+  .faceButton {
+    gap: 4px;
+    padding-inline: 4px;
+    font-size: 13px;
+  }
+
+  .observation {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dotButton,
+  .choiceButton,
+  .faceButton {
+    transition: none;
+  }
+}

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
@@ -794,6 +795,13 @@ export default function Home() {
           <nav aria-label="学习页面">
             <p className="nav-label">我的学习空间</p>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <NavigationButton asChild className="nav-button" disabled={!!queue.length && !done}>
+                  <Link href="/knowledge" onClick={(event) => { if (queue.length && !done) event.preventDefault(); }} aria-disabled={!!queue.length && !done}>
+                    <Shapes size={21} /><span>数学知识图谱</span>
+                  </Link>
+                </NavigationButton>
+              </SidebarMenuItem>
               {navigation.map((n) => (
                 <SidebarMenuItem key={n.id}>
                   <NavigationButton
@@ -1282,6 +1290,11 @@ export default function Home() {
                 <>
                   {view === "home" && (
                     <>
+                      <Link href="/knowledge" className="knowledge-entry">
+                        <span className="knowledge-entry-icon"><Shapes size={28} /></span>
+                        <span><small>新的探索方式 · 小学空间启蒙</small><strong>从点、线、面，到立体世界</strong><em>打开知识图谱，边动手边发现。</em></span>
+                        <span className="knowledge-entry-action">去探索 <ArrowRight size={18} /></span>
+                      </Link>
                       <div className="task-center-home">
                         <TaskCenter
                           plan={dailyPlan}

@@ -140,6 +140,20 @@ button:hover:not(:disabled) {
   letter-spacing: 2px;
   color: #94a0b1;
 }
+.knowledge-entry { display: flex; align-items: center; gap: 18px; padding: 22px 25px; margin-bottom: 24px; background: #f1f6ea; border: 1px solid #dfe8d5; border-radius: 18px; color: #345d48; }
+.knowledge-entry-icon { display: grid; place-items: center; width: 58px; height: 58px; flex-shrink: 0; border-radius: 17px; background: #e0ecd4; }
+.knowledge-entry small { display: block; color: #7a8e6b; font-size: 11px; margin-bottom: 5px; }
+.knowledge-entry strong { display: block; font-size: 20px; }
+.knowledge-entry em { display: block; font-size: 12px; font-style: normal; color: #7a8975; margin-top: 6px; }
+.knowledge-entry-action { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+@media(max-width:600px) {
+  .knowledge-entry { gap: 12px; padding: 17px 15px; }
+  .knowledge-entry-icon { width: 43px; height: 49px; border-radius: 12px; }
+  .knowledge-entry strong { font-size: 15px; }
+  .knowledge-entry small { font-size: 9px; }
+  .knowledge-entry-action { font-size: 0; gap: 0; }
+  .knowledge-entry em { font-size: 10px; }
+}
 .nav-button {
   height: 52px !important;
   padding: 0 20px !important;
