@@ -313,3 +313,24 @@
 @media (prefers-reduced-motion: reduce) {
   .page *, .page *::before, .page *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* The child arrives at the current question first; the full curriculum stays within reach. */
+.arrivalHeading { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:25px 4px; }
+.arrivalHeading h1 { font-size:clamp(22px,2.8vw,32px); font-weight:750; line-height:1.5; margin-top:7px; }
+.arrivalHeading .secondary { flex-shrink:0; }
+.atlas { margin-top:26px; border:1px solid #dfe6d7; border-radius:18px; background:#fffef9; }
+.atlas > summary { display:flex; align-items:center; gap:13px; min-height:78px; padding:18px 23px; list-style:none; cursor:pointer; color:#47664f; font-size:17px; font-weight:650; }
+.atlas > summary::-webkit-details-marker { display:none; }
+.atlas > summary > span { flex:1; }
+.atlas > summary small { display:block; font-size:12px; font-weight:400; line-height:1.8; color:#5c6b58; margin-top:4px; }
+.atlas[open] > summary > svg:last-child { transform:rotate(180deg); }
+.atlasBody { padding:0 20px 5px; }
+.atlasBody .subjectNavigation { padding:0 0 18px; }
+.atlasBody .routeSection { background:#f8faf3; }
+.atlas > summary:focus-visible { outline:3px solid #648d71; outline-offset:4px; }
+@media (max-width:600px) {
+  .arrivalHeading { align-items:flex-start; flex-direction:column; padding:20px 3px; gap:12px; }
+  .arrivalHeading .secondary { min-height:44px; padding:9px 12px; font-size:12px; }
+  .atlasBody { padding:0 12px 0; }
+  .atlas > summary { padding:16px; font-size:15px; }
+}

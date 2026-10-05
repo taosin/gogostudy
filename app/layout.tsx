@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GoGo学堂 · 从好奇开始，认识世界",
-  description: "面向小学生的数学、语文、历史、地理、英语知识成长地图，以及数学教材练习、错题订正与学习复盘。",
+  title: "GoGo学堂 · 我的知识世界",
+  description: "带着好奇探索数学、语文、历史、地理、英语与宇宙，在故事、互动和小实验中认识知识之间的联系，再到练习营地巩固自己的收获。",
   other: {
     "codex-preview": "development",
   },

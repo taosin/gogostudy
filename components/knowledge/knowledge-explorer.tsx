@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Lightbulb, Map as MapIcon, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Lightbulb, RotateCcw, Sparkles } from "lucide-react";
 import { geometryNodes, geometryStages, type GeometryStageId } from "@/lib/geometry-graph";
 import { emptyGeometryProgress, GEOMETRY_STORAGE_KEY, parseGeometryProgress, recordGeometryAnswer, selectGeometryNode, type GeometryProgress } from "@/lib/geometry-progress";
+import { WorldNavigation } from "@/components/world/journey-companion";
 import { GeometryPlayground } from "./geometry-playground";
 import styles from "./knowledge-explorer.module.css";
 
@@ -105,11 +105,7 @@ export function KnowledgeExplorer() {
   return (
     <div className={styles.page}>
       <a className="skip-link" href="#knowledge-main">跳到知识图谱</a>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand}><span><MapIcon size={23} /></span>GoGo 学堂</Link>
-        <nav aria-label="学习导航"><Link href="/knowledge/math"><ArrowLeft size={16} />数学成长地图</Link><span aria-current="page">空间小实验</span></nav>
-        <span className={styles.headerNote}>小小探索家，出发吧！</span>
-      </header>
+      <WorldNavigation placeId="math" />
       <main id="knowledge-main" className={styles.main}>
         <section className={styles.hero} aria-labelledby="knowledge-title">
           <div>

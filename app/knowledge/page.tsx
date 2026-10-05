@@ -4,8 +4,8 @@ import { getSubjectCurriculum } from "@/lib/curricula";
 import { learningSubjects } from "@/lib/learning-subjects";
 
 export const metadata: Metadata = {
-  title: "五科知识成长地图 · 从好奇到理解 | GoGo学堂",
-  description: "数学、语文、历史、地理、英语，从基础概念出发，观察、动手、理解、运用，逐步建立孩子自己的知识体系。",
+  title: "我的知识路线册 · GoGo学堂",
+  description: "知识世界的随身路线册：查看数学、语文、历史、地理和英语的基础路线，找回学习位置，沿着知识联系继续探索。",
 };
 export default async function KnowledgePage() {
   const curricula = await Promise.all(learningSubjects.map(({ id }) => getSubjectCurriculum(id)));

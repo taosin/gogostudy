@@ -96,3 +96,8 @@
 
 .planetOrder { padding:16px 17px 4px;color:#49634e; }.planetOrder p { font-size:14px;line-height:1.7; }.planetOrder ol { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 4px;padding:0;margin:10px 0 0;list-style:none; }.planetOrder li { font-size:13px;display:flex;align-items:center;gap:5px;white-space:nowrap; }.planetOrder li>span { font-size:11px;color:#668059; }
 @media(max-width:380px) { .planetOrder ol { grid-template-columns:repeat(2,minmax(0,1fr)); }.planetOrder li { font-size:14px; } }
+
+.arrivalHeading { padding:24px 4px 26px; }
+.arrivalHeading h1 { font-size:clamp(24px,3.1vw,35px); font-weight:750; line-height:1.5; margin:9px 0; }
+.arrivalHeading > p:last-child { color:#5c705a; font-size:14px; line-height:1.9; }
+@media (max-width:520px) { .arrivalHeading { padding:21px 3px; } .arrivalHeading h1 { font-size:24px; } }

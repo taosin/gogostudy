@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint app components content lib tests",
     "test": "npm run test:unit && npm run test:server",
-    "test:unit": "tsx --test tests/daily-plan.test.ts tests/question-cache.test.ts tests/study.test.ts tests/use-study.test.ts tests/weekly-report.test.ts tests/geometry-progress.test.ts tests/math-learning-progress.test.ts tests/learning-system.test.ts tests/universe.test.ts",
+    "test:unit": "tsx --test tests/daily-plan.test.ts tests/question-cache.test.ts tests/study.test.ts tests/use-study.test.ts tests/weekly-report.test.ts tests/geometry-progress.test.ts tests/math-learning-progress.test.ts tests/learning-system.test.ts tests/universe.test.ts tests/world-progress.test.ts tests/practice-navigation.test.ts",
     "test:server": "NODE_OPTIONS=--conditions=react-server tsx --test tests/api.test.ts tests/trusted-writes.test.ts"
   },
   "dependencies": {

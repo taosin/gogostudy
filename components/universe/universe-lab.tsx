@@ -212,10 +212,12 @@ function WaterCycleLab() {
   </>;
 }
 
-const labs = [{ title: "看昼夜", symbol: "◐" }, { title: "比公转", symbol: "◎" }, { title: "追水滴", symbol: "≈" }];
+export type UniverseExperiment = "day-night" | "orbit" | "water-cycle";
+const labs = [{ id: "day-night", title: "看昼夜", symbol: "◐" }, { id: "orbit", title: "比公转", symbol: "◎" }, { id: "water-cycle", title: "追水滴", symbol: "≈" }] as const;
 
-export function UniverseLab() {
-  const [active, setActive] = useState(0);
+export function UniverseLab({ experiment, onExperimentChange }: { experiment: UniverseExperiment; onExperimentChange: (id: UniverseExperiment) => void }) {
+  const active = Math.max(0, labs.findIndex((lab) => lab.id === experiment));
+  function setActive(index: number) { onExperimentChange(labs[index].id); }
   const id = useId();
   function navigate(event: KeyboardEvent<HTMLButtonElement>, current: number) {
     const next = event.key === "ArrowRight" ? (current + 1) % labs.length : event.key === "ArrowLeft" ? (current + labs.length - 1) % labs.length : event.key === "Home" ? 0 : event.key === "End" ? labs.length - 1 : null;
