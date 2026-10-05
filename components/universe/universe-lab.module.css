@@ -1,0 +1,94 @@
+.lab { min-width: 0; overflow: hidden; border: 1px solid #dce5d7; border-radius: 24px; background: #fffef9; color: #29483b; }
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding: 12px; background: #edf2e7; border-bottom: 1px solid #dce5d7; }
+.tabs button { min-height: 51px; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid transparent; border-radius: 12px; padding: 9px; color: #51664e; font-size: 16px; font-weight: 650; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: #fffef9; color: #28573e; border-color: #ccd9c5; box-shadow: 0 3px 8px #324a3008; }
+.tabs button > span { font-size: 23px; font-weight: 500; }
+.panel { padding: 28px; min-width: 0; }
+.panelHeading { margin-bottom: 24px; }
+.kicker { display: block; margin-bottom: 9px; color: #567151; font-size: 13px; line-height: 1.7; }
+.panelHeading h3 { font-size: 24px; font-weight: 750; line-height: 1.5; margin: 0 0 12px; }
+.panelHeading p { margin: 0; color: #556951; font-size: 16px; line-height: 1.9; }
+.figure { margin: 0; }
+.spaceScene, .waterScene { display: block; width: 100%; max-height: 420px; overflow: hidden; border-radius: 18px; }
+.spaceScene { background: #142c39; }
+.waterScene { background: #e2efed; }
+.spaceText { font-size: 17px; fill: #e2efec; font-family: inherit; }
+.spaceSmall { font-size: 14px; fill: #d8e8e2; font-family: inherit; }
+.dayText { font-size: 17px; fill: #25463b; font-family: inherit; font-weight: 650; }
+.sunText { font-size: 14px; fill: #523f1e; font-family: inherit; font-weight: 650; }
+.waterText { font-size: 15px; fill: #335a54; font-family: inherit; font-weight: 650; }
+.figure figcaption { padding: 12px 2px 0; color: #5d6a56; font-size: 13px; line-height: 1.85; }
+.readout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 21px 0 25px; }
+.readout > div { border: 1px solid #e3e9da; background: #f7f9f0; border-radius: 13px; padding: 15px 12px; min-width: 0; }
+.readout span { display: block; font-size: 12px; line-height: 1.7; color: #5b7051; margin-bottom: 8px; }
+.readout strong { font-size: 22px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.sliderLabel { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 16px; font-weight: 650; line-height: 1.75; }
+.sliderLabel span { font-size: 13px; font-weight: 400; color: #5b7053; }
+.slider { display: block; width: 100%; height: 44px; accent-color: #447451; margin: 5px 0 8px; cursor: pointer; }
+.controls, .jumpControls, .planetChoices { display: flex; flex-wrap: wrap; align-items: stretch; gap: 9px; }
+.figure + .controls { margin-top: 18px; }
+.jumpControls { margin-top: 10px; }
+.planetChoices { margin: -3px 0 20px; }
+.button, .primaryButton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; min-height: 46px; padding: 10px 16px; border: 1px solid #cbd9c3; border-radius: 11px; background: #fffefb; color: #385d40; font: inherit; font-size: 15px; font-weight: 600; line-height: 1.6; cursor: pointer; touch-action: manipulation; }
+.primaryButton { background: #37684b; border-color: #37684b; color: #fffef6; }
+.primaryButton > span { font-size: 19px; }
+.button:hover:not(:disabled) { background: #edf3e7; }
+.primaryButton:hover { background: #2d573d; }
+.button[aria-pressed="true"] { background: #e9f1e0; border-color: #6e9661; }
+.button:disabled { opacity: .5; cursor: default; }
+.motionNote { font-size: 13px; line-height: 1.8; color: #5c6d54; padding: 10px 0 0; margin: 0; }
+.explanation { margin: 25px 0 13px; padding: 18px; border-radius: 13px; background: #edf4e4; font-size: 16px; line-height: 1.95; }
+.explanation strong { font-weight: 700; }
+.modelNote { margin: 13px 0 0; font-size: 13px; line-height: 1.9; color: #5c6a53; }
+.prediction { border-top: 1px solid #e0e7d8; margin-top: 26px; padding-top: 24px; }
+.prediction fieldset { border: 0; padding: 0; margin: 0 0 15px; min-width: 0; }
+.prediction legend { padding: 0; font-size: 17px; line-height: 1.8; font-weight: 650; }
+.prediction legend > span { display: block; font-size: 12px; color: #56734e; margin-bottom: 5px; }
+.options { display: grid; gap: 9px; margin-top: 16px; }
+.option { display: flex; align-items: center; gap: 10px; min-height: 48px; border: 1px solid #dce5d4; border-radius: 11px; padding: 10px 13px; font-size: 16px; line-height: 1.8; cursor: pointer; }
+.option:has(input:checked) { background: #edf3e5; border-color: #7b9f6d; }
+.option input { width: 17px; height: 17px; flex-shrink: 0; accent-color: #477652; }
+.feedback { margin: 16px 0 0; padding: 16px; border-radius: 12px; background: #f7f0dd; color: #685630; font-size: 16px; line-height: 1.9; }
+.feedback strong { display: block; margin-bottom: 6px; }
+.feedback > span { display: block; font-size: 13px; margin-top: 10px; }
+.waterSteps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.stepButton { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-height: 77px; min-width: 0; padding: 10px 4px; border: 1px solid #dae4d1; border-radius: 11px; background: #f7f9ef; color: #4d694a; font-size: 14px; line-height: 1.6; cursor: pointer; }
+.stepButton > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #e1ecd7; font-size: 12px; }
+.stepButton[aria-pressed="true"] { background: #e4efdb; border-color: #709567; font-weight: 700; }
+.waterExplanation { margin: 20px 0; padding: 20px; border-radius: 14px; background: #edf4e6; }
+.waterExplanation > span { font-size: 13px; color: #52704a; }
+.waterExplanation h4 { font-size: 22px; font-weight: 700; line-height: 1.5; margin: 8px 0 10px; }
+.waterExplanation p { font-size: 16px; line-height: 1.9; margin: 0 0 14px; }
+.waterExplanation strong { display: block; border-top: 1px solid #d7e4ca; padding-top: 13px; font-size: 14px; line-height: 1.8; font-weight: 650; }
+.lab button:focus-visible, .lab input:focus-visible, .option:has(input:focus-visible) { outline: 3px solid #2a7550; outline-offset: 3px; }
+.lab button { -webkit-tap-highlight-color: transparent; }
+@media (max-width: 560px) {
+  .panel { padding: 22px 18px; }
+  .readout { gap: 8px; }
+  .readout > div { padding: 12px 9px; }
+  .readout strong { font-size: 20px; }
+  .sliderLabel { display: block; }
+  .sliderLabel > span { display: block; margin-top: 3px; }
+  .panelHeading h3 { font-size: 24px; }
+  .planetChoices .button { flex: 1 1 180px; }
+  .waterExplanation { padding: 17px; }
+}
+@media (max-width: 380px) {
+  .lab { border-radius: 18px; }
+  .tabs { gap: 5px; padding: 8px; }
+  .tabs button { padding: 8px 4px; font-size: 14px; gap: 6px; }
+  .tabs button > span { font-size: 20px; }
+  .panel { padding: 20px 12px; }
+  .readout { gap: 6px; }
+  .readout > div { padding: 11px 7px; }
+  .readout strong { font-size: 17px; }
+  .button, .primaryButton { padding: 10px 12px; font-size: 14px; }
+  .waterSteps { gap: 5px; }
+  .stepButton { font-size: 12px; }
+  .explanation, .waterExplanation { padding: 15px; }
+  .spaceText, .dayText { font-size: 24px; }
+  .spaceSmall, .waterText, .sunText { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab *, .lab *::before, .lab *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}

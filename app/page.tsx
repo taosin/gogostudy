@@ -14,6 +14,7 @@ import {
   Shapes,
   Star,
   Sun,
+  Orbit,
   Settings2,
   Check,
   Clock,
@@ -1295,6 +1296,7 @@ export default function Home() {
                         <span><small>数学 · 语文 · 历史 · 地理 · 英语</small><strong>从一个小发现，认识大大的世界</strong><em>五科知识，从基础开始，一步步连起来。</em></span>
                         <span className="knowledge-entry-action">去学习 <ArrowRight size={18} /></span>
                       </Link>
+                      <Link href="/knowledge/universe" prefetch={false} className="universe-home-entry"><Orbit size={22} /><span><strong>宇宙与万物</strong> · 看动画，找联系，做小模拟</span><ArrowRight size={17} /></Link>
                       <div className="task-center-home">
                         <TaskCenter
                           plan={dailyPlan}

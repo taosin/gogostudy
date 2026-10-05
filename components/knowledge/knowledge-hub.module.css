@@ -29,6 +29,10 @@
 .orbit[data-subject="geography"] { bottom: 1px; right: 32%; transform: rotate(5deg); }
 .orbit[data-subject="english"] { bottom: 22px; left: 6%; transform: rotate(-6deg); }
 .library { scroll-margin-top: 24px; }
+.universeEntry { display:flex;align-items:center;gap:22px;margin:0 0 33px;padding:24px 27px;border:1px solid #cedcce;border-radius:18px;background:#e8efdf;color:#355c4a; }
+.universeSymbol { height:64px;width:64px;display:grid;place-items:center;flex-shrink:0;border-radius:50%;background:#d6e4cc;color:#557953; }
+.universeEntry small { font-size:12px;color:#5d7450; }.universeEntry h2 { font-size:23px;font-weight:750;margin:7px 0;line-height:1.6; }.universeEntry p { font-size:13px;color:#597151;line-height:1.9; }
+.universeAction { margin-left:auto;display:flex;align-items:center;gap:12px;font-size:14px;white-space:nowrap; }
 .sectionHeading { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 24px; }
 .sectionHeading h2 { font-size: 27px; font-weight: 750; margin-top: 8px; }
 .total { display: flex; gap: 7px; align-items: center; font-size: 13px; color: #4e6b44; border: 1px solid #d7e3c8; border-radius: 10px; background: #edf3e4; padding: 10px 13px; white-space: nowrap; }
@@ -79,6 +83,7 @@
  .orbit { width: 76px; padding: 12px 8px; }
 }
 @media(max-width:660px) {
+ .universeEntry { gap:13px;padding:20px 17px;flex-wrap:wrap;margin-bottom:27px; }.universeSymbol { width:43px;height:43px; }.universeSymbol svg { width:27px; }.universeEntry>div { flex:1;min-width:0; }.universeEntry h2 { font-size:19px; }.universeEntry small { font-size:12px; }.universeAction { margin-left:56px;min-height:44px; }
  .header { min-height: 72px; padding: 13px 18px; gap: 14px; }
  .brand { font-size: 20px; }
  .headerLabel { display: none; }

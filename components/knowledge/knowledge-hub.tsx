@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, Check, Compass, GitBranch, Sprout } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Compass, GitBranch, Orbit, Sprout } from "lucide-react";
 import { createLearningEngine, learningStorageKey, type LearningProgress } from "@/lib/learning-progress";
 import { learningSubjects } from "@/lib/learning-subjects";
 import type { SubjectCurriculum } from "@/lib/learning-types";
@@ -63,6 +63,9 @@ export function KnowledgeHub({ subjects }: { subjects: SubjectOverview[] }) {
           {learningSubjects.map((subject) => <Link key={subject.id} href={"/knowledge/" + subject.id} prefetch={false} className={styles.orbit} data-subject={subject.id} style={{ "--subject": subject.color, "--soft": subject.soft } as CSSProperties}><span>{subject.symbol}</span><strong>{subject.title}</strong></Link>)}
         </div>
       </section>
+      <Link href="/knowledge/universe" prefetch={false} className={styles.universeEntry}>
+        <span className={styles.universeSymbol}><Orbit size={34} /></span><div><small>好奇心探索专题 · 动画 / 关系图 / 小模拟</small><h2>宇宙与万物，原来这样相连。</h2><p>从地球走向星河，再看看一片叶子、一滴水里面的世界。</p></div><span className={styles.universeAction}>去探索<ArrowRight size={19} /></span>
+      </Link>
       <section id="subject-library" className={styles.library} aria-labelledby="library-title">
         <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>五扇门，通向相连的世界</p><h2 id="library-title">今天，从哪里出发？</h2></div><div className={styles.total}><Check size={17} />已完成 {completed} / {total} 课</div></div>
         <div className={styles.cards}>{subjects.map((curriculum, index) => {

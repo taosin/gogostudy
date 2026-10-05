@@ -146,6 +146,8 @@ button:hover:not(:disabled) {
 .knowledge-entry strong { display: block; font-size: 20px; }
 .knowledge-entry em { display: block; font-size: 12px; font-style: normal; color: #7a8975; margin-top: 6px; }
 .knowledge-entry-action { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+.universe-home-entry { display:flex;align-items:center;gap:12px;min-height:56px;margin:-8px 0 24px;padding:13px 18px;background:#eef3e7;border:1px solid #dbe5d1;border-radius:12px;color:#486d51;font-size:13px;line-height:1.8; }
+.universe-home-entry>svg { flex-shrink:0; }.universe-home-entry>svg:last-child { margin-left:auto; }.universe-home-entry strong { font-weight:650; }
 @media(max-width:600px) {
   .knowledge-entry { gap: 12px; padding: 17px 15px; }
   .knowledge-entry-icon { width: 43px; height: 49px; border-radius: 12px; }
