@@ -1,0 +1,18 @@
+.reader { color: #3f5a48; min-width: 0; }
+.controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.reader button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 1px solid #c8d7c3; border-radius: 10px; padding: 8px 13px; color: #355b40; background: #f7faf3; font: inherit; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.reader button:hover { background: #ecf3e5; border-color: #739766; }
+.reader button svg { flex: 0 0 auto; }
+.reader button:focus-visible, .speed select:focus-visible { outline: 3px solid #4d805c; outline-offset: 3px; }
+.reader button.play { font-weight: 650; }
+.speed { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #596c57; }
+.speed select { min-height: 44px; max-width: 100%; border: 1px solid #cbd7c4; border-radius: 9px; padding: 7px 9px; color: #365a42; background: #fffefb; font: inherit; font-size: 14px; cursor: pointer; }
+.reader .status { font-size: 13px; line-height: 1.8; margin: 7px 0 0; color: #4a674e; overflow-wrap: anywhere; }
+.reader .status:empty { display: none; }
+.reader .note { font-size: 12px; line-height: 1.8; margin: 6px 0 0; color: #64705e; }
+.compact { flex: 1 1 auto; }
+.compact .controls { gap: 7px; }
+@media(max-width: 480px) {
+  .reader button { padding: 8px 10px; }
+  .speed { gap: 5px; }
+}

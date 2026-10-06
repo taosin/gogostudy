@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, RotateCcw, Volume2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, RotateCcw } from "lucide-react";
+import { ReadAloud } from "@/components/media/read-aloud";
 import type { DiscoveryActivity, LearningLesson } from "@/lib/learning-types";
 import styles from "./subject-activity.module.css";
 
@@ -117,46 +118,13 @@ function MapActivity({ activity }: { activity: ActivityOf<"map"> }) {
 
 function Listen({ activity }: { activity: ActivityOf<"listen"> }) {
   const [flipped, setFlipped] = useState<number[]>([]);
-  const [speaking, setSpeaking] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState("先看词句，猜猜意思，再翻开卡片。也可以听一听、跟着读。");
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  useEffect(() => () => {
-    if (utteranceRef.current && "speechSynthesis" in window) {
-      utteranceRef.current.onend = null; utteranceRef.current.onerror = null;
-      window.speechSynthesis.cancel();
-    }
-  }, []);
-  function stop() {
-    if (utteranceRef.current) { utteranceRef.current.onend = null; utteranceRef.current.onerror = null; }
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    utteranceRef.current = null; setSpeaking(null);
-  }
-  function speak(index: number) {
-    stop();
-    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
-      setFeedback("这个浏览器暂不支持朗读。可以看词句和意思，请家人陪你读一读。"); return;
-    }
-    const item = activity.items[index];
-    const utterance = new SpeechSynthesisUtterance(item.spoken ?? item.text);
-    utterance.lang = activity.lang; utterance.rate = .8;
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find((value) => value.lang === activity.lang) ?? voices.find((value) => value.lang.split("-")[0] === activity.lang.split("-")[0]);
-    if (voices.length && !voice) { setFeedback("这台设备还没有对应语言的朗读声音。文字卡片仍可使用，也可以请家人陪读。"); return; }
-    if (voice) utterance.voice = voice;
-    utterance.onend = () => { if (utteranceRef.current === utterance) { setSpeaking(null); setFeedback("听完了。试着读一遍，再看看这句话用在什么时候。"); } };
-    utterance.onerror = () => { if (utteranceRef.current === utterance) { setSpeaking(null); setFeedback("这次朗读没有成功。可以再试一次，或看文字跟家人练习。"); } };
-    utteranceRef.current = utterance;
-    try { window.speechSynthesis.speak(utterance); setSpeaking(index); setFeedback("正在朗读。可以随时停止。"); }
-    catch { setSpeaking(null); setFeedback("朗读暂时不可用，文字卡片仍可继续学习。"); }
-  }
   return <>
     <div className={styles.wordCards}>{activity.items.map((item, index) => <div key={item.text}><strong lang={activity.lang}>{item.text}</strong>
       {flipped.includes(index) ? <p>{item.meaning}</p> : <p className={styles.hiddenMeaning}>猜猜它表达什么意思？</p>}
-      <div><button onClick={() => setFlipped(flipped.includes(index) ? flipped.filter((i) => i !== index) : [...flipped, index])}>{flipped.includes(index) ? "合上意思" : "翻开看看"}<RotateCcw size={14} /></button><button aria-label={"听一听 " + item.text} onClick={() => speak(index)}><Volume2 size={18} />{speaking === index ? "再听一次" : "听一听"}</button></div>
+      <div><button onClick={() => setFlipped(flipped.includes(index) ? flipped.filter((i) => i !== index) : [...flipped, index])}>{flipped.includes(index) ? "合上意思" : "翻开看看"}<RotateCcw size={14} /></button><ReadAloud text={item.spoken ?? item.text} lang={activity.lang} label={"听一听 " + item.text} compact /></div>
     </div>)}</div>
-    <Feedback text={feedback} />
-    {speaking !== null ? <button className={styles.stop} onClick={() => { stop(); setFeedback("已停止朗读。"); }}>停止朗读</button> : null}
-    <p className={styles.note}>声音由设备提供，不能播放时可看文字学习。跟读由自己或家人练习，本课不评判发音。</p>
+    <Feedback text="先看词句，猜猜意思，再翻开卡片。也可以听一听、跟着读。" />
+    <p className={styles.note}>声音由设备提供，不能播放时可看文字学习。跟读不录音，也不评判发音；换语速后会从头读。</p>
   </>;
 }
 

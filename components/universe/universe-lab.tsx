@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { getDayNightState, getOrbitState, getWaterCycleState, normalizeDegrees, ORBIT_PERIOD_DAYS, pointAlongPolyline, WATER_STAGES, WATER_STAGE_SECONDS, type OrbitPlanet } from "@/lib/universe-simulation";
+import { LearningVideo } from "@/components/media/learning-video";
+import { claimLearningPlayback, LEARNING_PLAYBACK_EVENT } from "@/lib/learning-playback";
 import styles from "./universe-lab.module.css";
 
 // Scientific sources and model boundaries are documented in universe-simulation.ts.
@@ -21,12 +23,17 @@ function useLabClock(rate: number, diagramRef: RefObject<HTMLElement | null>) {
   const [playing, setPlaying] = useState(false);
   const [pauseReason, setPauseReason] = useState("");
   const visibleRef = useRef(true);
+  const playbackId = useId();
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, reducedMotionSnapshot, () => false);
 
   useEffect(() => {
     const pauseForVisibility = () => {
       if (document.hidden) { setPlaying(false); setPauseReason("页面暂时离开了，播放已暂停。回来看时可以继续。"); }
     };
+    const onOtherPlayback = (event: Event) => {
+      if ((event as CustomEvent<{ id: string }>).detail?.id !== playbackId) { setPlaying(false); setPauseReason("先听听或看看新的内容，模拟已暂停。"); }
+    };
+    window.addEventListener(LEARNING_PLAYBACK_EVENT, onOtherPlayback);
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const pauseForPreference = () => { if (media.matches) setPlaying(false); };
     const observer = new IntersectionObserver(([entry]) => {
@@ -36,8 +43,8 @@ function useLabClock(rate: number, diagramRef: RefObject<HTMLElement | null>) {
     if (diagramRef.current) observer.observe(diagramRef.current);
     document.addEventListener("visibilitychange", pauseForVisibility);
     media.addEventListener("change", pauseForPreference);
-    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", pauseForVisibility); media.removeEventListener("change", pauseForPreference); };
-  }, [diagramRef]);
+    return () => { observer.disconnect(); window.removeEventListener(LEARNING_PLAYBACK_EVENT, onOtherPlayback); document.removeEventListener("visibilitychange", pauseForVisibility); media.removeEventListener("change", pauseForPreference); };
+  }, [diagramRef, playbackId]);
 
   useEffect(() => {
     if (!playing) return;
@@ -60,7 +67,10 @@ function useLabClock(rate: number, diagramRef: RefObject<HTMLElement | null>) {
   }, [playing, rate]);
 
   function seek(value: number) { setPlaying(false); setPauseReason(""); setElapsed(Math.max(0, value)); }
-  function toggle() { setPauseReason(""); setPlaying((value) => !value && !document.hidden && visibleRef.current); }
+  function toggle() {
+    if (!playing && !document.hidden && visibleRef.current) claimLearningPlayback(playbackId);
+    setPauseReason(""); setPlaying((value) => !value && !document.hidden && visibleRef.current);
+  }
   return { elapsed, playing, pauseReason, reducedMotion, seek, toggle, reset: () => seek(0) };
 }
 
@@ -226,6 +236,6 @@ export function UniverseLab({ experiment, onExperimentChange }: { experiment: Un
   }
   return <section className={styles.lab} aria-label="宇宙与地球互动实验室">
     <div className={styles.tabs} role="tablist" aria-label="选择一个小模拟">{labs.map((lab, index) => <button key={lab.title} id={`${id}-tab-${index}`} type="button" role="tab" aria-selected={active === index} aria-controls={`${id}-panel`} tabIndex={active === index ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setActive(index)}><span aria-hidden="true">{lab.symbol}</span>{lab.title}</button>)}</div>
-    <div className={styles.panel} id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${active}`}>{active === 0 ? <DayNightLab /> : active === 1 ? <OrbitLab /> : <WaterCycleLab />}</div>
+    <div className={styles.panel} id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${active}`}>{experiment !== "orbit" ? <LearningVideo id={experiment} /> : null}{active === 0 ? <DayNightLab /> : active === 1 ? <OrbitLab /> : <WaterCycleLab />}</div>
   </section>;
 }
