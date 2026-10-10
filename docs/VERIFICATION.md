@@ -18,6 +18,12 @@
 - 当前生产数据模式：浏览器体验模式
 - Supabase 状态：新加坡项目 `nviiueqdafonwsztkkqh` 已创建，四份迁移已应用；生产尚未连接
 
+### 依赖补丁核查
+
+正式构建发现两项新增运行依赖告警，已在现有依赖范围内更新锁文件：`sharp 0.35.4 → 0.35.5`、`source-map-js 1.2.1 → 1.2.2`，以及 Sharp 必需的平台二进制与 libvips。Next.js 和应用直接依赖保持原版本。修复依据：[Sharp 公告](https://github.com/advisories/GHSA-wq5f-xc86-pv6w)、[source-map-js 公告](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)。
+
+更新后 `npm audit --omit=dev` 返回 0 项告警，Sharp 实际生成并读取 WebP 成功；全量 184 项测试、类型检查和 ESLint 与生产构建再次通过。开发工具链原有告警仍单独保留，未执行强制依赖升级。
+
 ## 2026-10-06 场景音视频验收
 
 - 六个世界场景、五科 80 个课程故事提供主动朗读；中文、英文词句卡复用可暂停、继续、停止和调速的控件。声音依赖设备，无相应声音或失败时保留文字；不录音、不评分。
