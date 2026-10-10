@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowRight, ArrowUp, Atom, BookOpen, Compass, FlaskConical, GitBranch, Lightbulb, Telescope } from "lucide-react";
 import { universeNodes, universeRelations, universeScales, universeSources, type UniverseNodeId, type UniverseScaleId } from "@/lib/universe-content";
 import { JourneyCompanion, WorldNavigation } from "@/components/world/journey-companion";
+import { DiscoveryStation } from "@/components/world/discovery-recorder";
 import type { UniverseExperiment } from "./universe-lab";
 import { ScaleScene } from "./scale-scene";
 import styles from "./universe-explorer.module.css";
@@ -140,6 +141,7 @@ export function UniverseExplorer() {
           </section> : view === "relations" ? <Connections selected={relationNode} onSelect={chooseRelation} /> : <section aria-label="动手做小实验"><div className={styles.sectionIntro}><div><span className={styles.eyebrow}>先猜一猜，再观察变化</span><h2>小小实验室，大大的为什么。</h2></div><p>自己控制时间和步骤。随时暂停，说说你看到了什么、为什么会这样。</p></div><UniverseLab experiment={experiment} onExperimentChange={chooseExperiment} /></section>}
         </div>
       </div>
+      {ready ? <DiscoveryStation key={destinationId} destinationId={destinationId} /> : null}
       <JourneyCompanion destinationId={destinationId} enabled={ready} variant="next" />
       <footer className={styles.footer}><p>原创入门探索 · 图像与模拟经过简化，说明见各图下方。点击、播放和做题不会计为已经掌握。</p><details><summary>给家长的内容参考</summary><p>围绕可观察的现象建立联系。这里是一张入门地图，尚未涵盖宇宙中的所有事物。</p><ul>{universeSources.map((source)=><li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}<ArrowRight size={13} /></a></li>)}</ul></details></footer>
     </main>

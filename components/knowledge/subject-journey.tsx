@@ -8,6 +8,7 @@ import { learningSubjects } from "@/lib/learning-subjects";
 import { createLearningEngine, learningStorageKey, learningSteps, type LearningProgress, type LearningStep } from "@/lib/learning-progress";
 import { SubjectActivity } from "./subject-activity";
 import { JourneyCompanion, WorldNavigation } from "@/components/world/journey-companion";
+import { DiscoveryStation } from "@/components/world/discovery-recorder";
 import { ReadAloud } from "@/components/media/read-aloud";
 import { LearningVideo } from "@/components/media/learning-video";
 import styles from "./math-journey.module.css";
@@ -211,6 +212,7 @@ export function SubjectJourney({ curriculum }: { curriculum: SubjectCurriculum }
           <div className={styles.lessonFooter}><button className={styles.textButton} disabled={!ready || stepIndex === 0} onClick={() => goToStep(learningSteps[stepIndex - 1])}><ArrowLeft size={16} />上一步</button><span>{stepIndex + 1} / 5</span>{stepIndex < 3 ? <button className={styles.primary} disabled={!ready} onClick={() => goToStep(learningSteps[stepIndex + 1])}>{stepIndex === 0 ? "一起动手试试" : stepIndex === 1 ? "说说其中的道理" : "我来用一用"}<ArrowRight size={16} /></button> : step === "check" && completed ? <button className={styles.secondary} onClick={() => goToStep("connect")}>回顾知识联系<ArrowRight size={16} /></button> : <button className={styles.textButton} disabled={!ready} onClick={openMap}>看看地图</button>}</div>
         </div>
       </section>
+      {ready ? <DiscoveryStation key={`${curriculum.id}:${lesson.id}`} destinationId={`${curriculum.id}:${lesson.id}`} /> : null}
       <details className={styles.atlas} open={showAtlas} onToggle={(event) => setShowAtlas(event.currentTarget.open)}>
         <summary><GitBranch size={20} /><span>我还可以去哪里？<small>看看成长路线、知识联系，或换一处地方。</small></span><ChevronDown size={18} /></summary>
         <div className={styles.atlasBody}>

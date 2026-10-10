@@ -8,6 +8,8 @@ import { readWorldLearningEvidence, type WorldLearningEvidence } from "@/lib/wor
 import { useWorldProgress } from "@/lib/use-world-progress";
 import { WorldMap } from "./world-map";
 import { WorldDiscovery } from "./world-discovery";
+import { DiscoveryStation } from "./discovery-recorder";
+import { NotebookPreview } from "./notebook-preview";
 import styles from "./world-home.module.css";
 
 const activityIntros: Record<WorldPlaceId, string> = {
@@ -83,6 +85,7 @@ export function WorldHome() {
           <div className={styles.discoveryActivity} key={place.id}><WorldDiscovery placeId={place.id} /></div>
           <Link className={styles.primary} href={getWorldDestinationHref(place.id === "universe" ? "universe:lab:day-night" : place.destinationId)} onClick={leaveTrail} prefetch={false}>沿着发现，继续走一走<ArrowRight size={17} /></Link>
           <div className={styles.pocketQuestion}><p><small>我还想知道</small>{place.question}</p><button disabled={!ready} aria-pressed={savedHere} aria-label={(savedHere ? "从背包取出问题：" : "把问题放进背包：") + place.question} onClick={() => toggleSaved("place:" + place.id)}><Bookmark size={17} fill={savedHere ? "currentColor" : "none"} /><span>{savedHere ? "已放进背包" : "先放进背包"}</span></button></div>
+          <DiscoveryStation key={`station:${place.id}`} placeId={place.id} destinationId={place.destinationId} />
           <a className={styles.backToMap} href="#world-map"><Map size={15} />我想再看看地图</a>
         </section>
       </div>
@@ -109,6 +112,7 @@ export function WorldHome() {
             {evidence?.reviewLessons.length ? <details className={styles.revisit}><summary>有 {evidence.reviewLessons.length} 个发现，我想再试试</summary>{evidence.reviewLessons.map((lesson) => <Link key={lesson.destinationId} href={getWorldDestinationHref(lesson.destinationId)} prefetch={false}>{lesson.title}<ArrowRight size={14} /></Link>)}</details> : null}
           </div>
         </div> : null}
+        {bagOpen ? <NotebookPreview /> : <div className={styles.notebookEntry}><Link href="/notebook" prefetch={false}>翻开我的发现手册<ArrowRight size={16} /></Link></div>}
         <div className={styles.bagTools}><Link href="/practice" prefetch={false}><Tent size={18} /><span>练习营地<small>把发现再用一用</small></span><ArrowRight size={15} /></Link><Link href="/practice#mistakes" prefetch={false}><Sparkles size={18} /><span>再想一想<small>回到我的错题</small></span><ArrowRight size={15} /></Link><Link href="/practice#review" prefetch={false}><Footprints size={18} /><span>我的学习小记<small>回顾练习与收获</small></span><ArrowRight size={15} /></Link><Link href="/knowledge" prefetch={false}><Route size={18} /><span>知识路线册<small>沿学科一步步走</small></span><ArrowRight size={15} /></Link></div>
       </section>
       <footer className={styles.footer}><Sprout size={18} /><p>今天不用走遍整个世界。能把一个发现说清楚，就带着它回家。</p><small>{world.storageError || evidence?.storageError ? "这个浏览器暂时无法保存或读取部分记录，本次仍可以继续探索。" : "我的位置、问题和学习记录留在当前浏览器，换设备暂不自动同步。"} 到访记录与理解练习分别保存。</small></footer>
